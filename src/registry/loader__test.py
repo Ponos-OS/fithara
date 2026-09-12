@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from app.registry.loader import RegistryLoadError, load_registry
+from src.registry.loader import RegistryLoadError, load_registry
 
 REAL_SCHEMA = Path(__file__).parent.parent / "licenses" / "_schema.json"
 

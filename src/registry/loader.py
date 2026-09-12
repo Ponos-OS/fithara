@@ -9,7 +9,7 @@ from jsonschema import ValidationError as JsonSchemaValidationError
 from jsonschema import validate as validate_json_schema
 from pydantic import ValidationError
 
-from app.registry.models import CanonicalLicense
+from src.registry.models import CanonicalLicense
 
 _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.DOTALL)
 

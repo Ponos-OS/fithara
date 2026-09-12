@@ -9,7 +9,7 @@
    - Warn the user if a step's `### Tests` subsection says to skip `rest-api-tester` or skip unit testing.
 5. Incorporate whatever `rest-api-tester` or the test suite surfaces.
    - Integration tests (`tests/`) are schema/contract conformance only (§4.11) — never assert on `assistantMessage` wording or other LLM-authored text. If a step's `### Tests` subsection seems to ask for that, cover the behavior at the unit tier against `rules.py`/a mocked agent instead, and say so in the test file.
-6. Run `make evals` if any `app/modules/*/prompts/*.md` (or `.jinja2`) file changed; if the regression is deliberate, commit the updated baseline per `.github/CONTRIBUTING.md` (`make evals_baseline`).
+6. Run `make evals` if any `src/modules/*/prompts/*.md` (or `.jinja2`) file changed; if the regression is deliberate, commit the updated baseline per `.github/CONTRIBUTING.md` (`make evals_baseline`).
    - When a step's `### Tests` says to verify manually (no pytest tier — e.g. Makefile/CI plumbing), actually run that verification rather than treating the AC as sufficient on paper. When it surfaces a real gap, fix it and update `REQUIREMENTS.md`'s AC for that step to match reality.
    - A `### Tests` claim that an _existing_ test "should still pass unmodified" is a guess, not a fact — run it before believing it. When it doesn't hold, update that test's fixtures/stubs to the new contract rather than treating the claim as the AC.
 7. If the step changes a Pydantic field's `description=...`, a route's `responses=`, or anything else that shapes the OpenAPI schema, run `make schema` before committing — `docs/openapi.json` is generated, not hand-edited, and won't reflect the new wording otherwise.

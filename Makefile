@@ -13,16 +13,16 @@ init:
 
 ## Run the FastAPI app with auto-reload
 start_dev:
-	uv run uvicorn app.main:app --reload --port $${PORT:-8000}
+	uv run uvicorn src.main:app --reload --port $${PORT:-8000}
 
 ## Run the FastAPI app (production mode)
 start:
-	uv run --no-sync uvicorn app.main:app --port $${PORT:-8000}
+	uv run --no-sync uvicorn src.main:app --port $${PORT:-8000}
 
-## Run unit tests (app/**/*__test.py)
+## Run unit tests (src/**/*__test.py)
 test:
 	@echo "== unit tests: $$(date -u +%FT%TZ) =="
-	uv run pytest app/ -v
+	uv run pytest src/ -v
 	@echo "== unit tests done: $$(date -u +%FT%TZ) =="
 
 ## Run integration tests (tests/)
@@ -35,7 +35,7 @@ integration_test:
 schema:
 	@echo "== exporting OpenAPI schema to docs/openapi.json =="
 	mkdir -p docs
-	uv run python -c "import json; from app.main import app; json.dump(app.openapi(), open('docs/openapi.json', 'w'), indent=2)"
+	uv run python -c "import json; from src.main import app; json.dump(app.openapi(), open('docs/openapi.json', 'w'), indent=2)"
 	@echo "== wrote docs/openapi.json =="
 
 ## Check lint/format/types without mutating files (CI)

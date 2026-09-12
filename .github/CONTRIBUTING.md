@@ -19,7 +19,7 @@ Modular by feature, mirroring the sibling project `smart-novel-beatrice`: one di
 
 ```
 fithara/
-├── app/
+├── src/
 │   ├── main.py                        # FastAPI app factory — only place routers are wired together (no side effects on import, see `make schema`)
 │   ├── config.py                      # Settings / get_settings() — pydantic-settings (§4.8)
 │   ├── config__test.py                # Unit tests: required fields, defaults, nested __ env vars
@@ -66,9 +66,9 @@ fithara/
 └── uv.lock                            # Committed lockfile
 ```
 
-- **Unit tests** are colocated with the source they cover, using the `*__test.py` suffix, and live under `app/`. `make test` runs `uv run pytest app/ -v`.
+- **Unit tests** are colocated with the source they cover, using the `*__test.py` suffix, and live under `src/`. `make test` runs `uv run pytest src/ -v`.
 - **Integration tests** live only under `tests/` and are run via `make integration_test` (`uv run pytest tests/ -v`) — a separate pytest invocation over a separate tree.
-- **A new feature is a new directory under `app/modules/`.** If it needs its own routes, LLM agent, or prompts, give it its own `routes.py`/`agent.py`/`types.py`/`prompts/` — don't grow `licenses/` or `draft/` to cover unrelated concerns.
+- **A new feature is a new directory under `src/modules/`.** If it needs its own routes, LLM agent, or prompts, give it its own `routes.py`/`agent.py`/`types.py`/`prompts/` — don't grow `licenses/` or `draft/` to cover unrelated concerns.
 - `docs/openapi.json` is a **generated, committed artefact**. Regenerate it with `make schema` whenever routes or models change; CI fails if it's stale.
 
 ## Testing Philosophy
@@ -106,7 +106,7 @@ Three tiers. Each answers a different question. Put each new test in the tier th
 
 ## Prompt Versioning
 
-Prompts live at `app/modules/<module>/prompts/v1.md` (or `v1.jinja2` if a module needs per-request templating rather than a static system prompt). The question that decides whether a change updates that file in place or ships as `v2.md` is: **does this change what "correct output" means for existing callers/evals?**
+Prompts live at `src/modules/<module>/prompts/v1.md` (or `v1.jinja2` if a module needs per-request templating rather than a static system prompt). The question that decides whether a change updates that file in place or ships as `v2.md` is: **does this change what "correct output" means for existing callers/evals?**
 
 - **Update the existing version in place** when the prompt wasn't honoring its own contract — a bug fix, a flaky-output fix, a wording/clarity tweak — and `dataset.yaml`'s expectations don't need to change. The fix should converge back to the existing `baseline.json`, not require redefining it.
 - **Create a new version** (`v2.md`, etc.) when you're intentionally changing behavior: new/removed rules, different drafting semantics, a model swap, or a rewrite where the old prompt isn't a strict subset/superset of the new rules. Also reach for a new version when you need to A/B the old and new prompt, or when rollback needs to be trivial (keep both files rather than relying on git history).
@@ -124,8 +124,8 @@ Prompts live at `app/modules/<module>/prompts/v1.md` (or `v1.jinja2` if a module
 5. Use `uv`; ALWAYS `uv run xxx` NEVER `python3 xxx`.
 6. Use latest version of libraries and idiomatic approaches as of today.
 7. Class owning an `httpx.AsyncClient` → see the `httpx-async-transport` skill.
-8. An enum/type that a module needs _and_ that `Settings` needs to reference (e.g. to pick which of that module's implementations to use) belongs in `app/config.py`, colocated with the other settings enums, not in the module itself. `Settings` is imported nearly everywhere, so defining that type in the module instead creates a straight import cycle the moment `Settings` needs it too.
+8. An enum/type that a module needs _and_ that `Settings` needs to reference (e.g. to pick which of that module's implementations to use) belongs in `src/config.py`, colocated with the other settings enums, not in the module itself. `Settings` is imported nearly everywhere, so defining that type in the module instead creates a straight import cycle the moment `Settings` needs it too.
 9. Comma-separated / delimited env var on a `BaseSettings` field → see the `settings-list-env-field` skill.
 10. Asserting on `extra={...}` log fields via `caplog` → see the `caplog-extra-typing` skill.
-11. `pytest` resolving `app.*` imports in `*__test.py` files needs `[tool.pytest.ini_options] pythonpath = ["."]` in `pyproject.toml` — without it, pytest's rootdir-based discovery doesn't add the repo root to `sys.path` and every colocated unit test fails to collect with `ModuleNotFoundError: No module named 'app'`.
-12. This service is an application, not a distributable library, and doesn't use a `src/<package>/` layout — set `[tool.uv] package = false` in `pyproject.toml` so `uv sync` doesn't try to build/install the project itself as a package (which fails without a matching package directory for the build backend to find).
+11. `pytest` resolving `src.*` imports in `*__test.py` files needs `[tool.pytest.ini_options] pythonpath = ["."]` in `pyproject.toml` — without it, pytest's rootdir-based discovery doesn't add the repo root to `sys.path` and every colocated unit test fails to collect with `ModuleNotFoundError: No module named 'src'`.
+12. This service is an application, not a distributable library, and `src/` isn't a package meant for `uv`'s build backend to install — set `[tool.uv] package = false` in `pyproject.toml` so `uv sync` doesn't try to build/install the project itself as a package (which fails without a matching package directory for the build backend to find).

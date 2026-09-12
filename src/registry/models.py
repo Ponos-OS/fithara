@@ -5,7 +5,7 @@ from pydantic.alias_generators import to_camel
 
 
 class CanonicalLicense(BaseModel):
-    """A single canonical license loaded from `app/licenses/*.md` (§3, §4.3)."""
+    """A single canonical license loaded from `src/licenses/*.md` (§3, §4.3)."""
 
     model_config = ConfigDict(
         alias_generator=AliasGenerator(validation_alias=to_camel, serialization_alias=to_camel),
