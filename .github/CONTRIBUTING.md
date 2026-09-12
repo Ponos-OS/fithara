@@ -127,5 +127,5 @@ Prompts live at `app/modules/<module>/prompts/v1.md` (or `v1.jinja2` if a module
 8. An enum/type that a module needs _and_ that `Settings` needs to reference (e.g. to pick which of that module's implementations to use) belongs in `app/config.py`, colocated with the other settings enums, not in the module itself. `Settings` is imported nearly everywhere, so defining that type in the module instead creates a straight import cycle the moment `Settings` needs it too.
 9. Comma-separated / delimited env var on a `BaseSettings` field → see the `settings-list-env-field` skill.
 10. Asserting on `extra={...}` log fields via `caplog` → see the `caplog-extra-typing` skill.
-</content>
-</invoke>
+11. `pytest` resolving `app.*` imports in `*__test.py` files needs `[tool.pytest.ini_options] pythonpath = ["."]` in `pyproject.toml` — without it, pytest's rootdir-based discovery doesn't add the repo root to `sys.path` and every colocated unit test fails to collect with `ModuleNotFoundError: No module named 'app'`.
+12. This service is an application, not a distributable library, and doesn't use a `src/<package>/` layout — set `[tool.uv] package = false` in `pyproject.toml` so `uv sync` doesn't try to build/install the project itself as a package (which fails without a matching package directory for the build backend to find).
