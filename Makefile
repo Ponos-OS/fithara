@@ -1,0 +1,58 @@
+.DEFAULT_GOAL := help
+
+## Show this help
+help:
+	@awk 'BEGIN {FS = ":.*##|## "} /^[a-zA-Z_-]+:.*?## |^## /{if ($$0 ~ /^##/) {print "\n" $$2} else {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}}' $(MAKEFILE_LIST)
+
+## Set up the local dev environment (.venv, deps, .env)
+init:
+	@command -v uv >/dev/null 2>&1 || { echo "uv is required: https://docs.astral.sh/uv/"; exit 1; }
+	uv sync
+	@[ -f .env ] || { [ -f .env.example ] && cp .env.example .env; }
+	uv run pre-commit install || true
+
+## Run the FastAPI app with auto-reload
+start_dev:
+	uv run uvicorn app.main:app --reload --port $${PORT:-8000}
+
+## Run the FastAPI app (production mode)
+start:
+	uv run --no-sync uvicorn app.main:app --port $${PORT:-8000}
+
+## Run unit tests (app/**/*__test.py)
+test:
+	@echo "== unit tests: $$(date -u +%FT%TZ) =="
+	uv run pytest app/ -v
+	@echo "== unit tests done: $$(date -u +%FT%TZ) =="
+
+## Run integration tests (tests/)
+integration_test:
+	@echo "== integration tests: $$(date -u +%FT%TZ) =="
+	uv run pytest tests/ -v
+	@echo "== integration tests done: $$(date -u +%FT%TZ) =="
+
+## Export the OpenAPI schema to docs/openapi.json (source of truth for API docs)
+schema:
+	@echo "== exporting OpenAPI schema to docs/openapi.json =="
+	mkdir -p docs
+	uv run python -c "import json; from app.main import app; json.dump(app.openapi(), open('docs/openapi.json', 'w'), indent=2)"
+	@echo "== wrote docs/openapi.json =="
+
+## Check lint/format/types without mutating files (CI)
+lint_check:
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run pyright
+
+## Apply lint/format fixes and check types (local dev)
+lint:
+	uv run ruff format .
+	uv run ruff check --fix .
+	uv run pyright
+
+## Remove caches, venv, and build artefacts
+clean:
+	rm -rf .venv .pytest_cache .ruff_cache .mypy_cache .pyright build dist *.egg-info
+	find . -type d -name __pycache__ -prune -exec rm -rf {} +
+
+.PHONY: help init start_dev start test integration_test schema lint_check lint clean

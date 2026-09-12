@@ -1,0 +1,27 @@
+[project]
+name = "fithara"
+version = "0.1.0"
+description = "License drafting assistant service"
+readme = "README.md"
+authors = [
+    { name = "Kasir Barati", email = "kasir.barati@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.9",
+    "pyyaml>=6.0",
+    "jsonschema>=4.23",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+
+[tool.uv]
+package = false
