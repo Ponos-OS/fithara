@@ -77,6 +77,7 @@ ignore = [
 "**/*__test.py" = ["S101"]
 "tests/**/*.py" = ["S101"]
 "src/utils/__init__.py" = ["TID251"]
+"src/utils/errors.py" = ["TID251"]  # sibling import of its own package's api_model.py
 "src/registry/__init__.py" = ["TID251"]
 "src/registry/loader.py" = ["TID251"]  # sibling import of its own package's models.py
 "src/modules/licenses/__init__.py" = ["TID251"]

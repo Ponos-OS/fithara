@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-from pydantic import AliasGenerator, BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
+from pydantic import ConfigDict
+
+from src.utils import CamelModel
 
 
-class CanonicalLicense(BaseModel):
+class CanonicalLicense(CamelModel):
     """A single canonical license loaded from `src/licenses/*.md`."""
 
-    model_config = ConfigDict(
-        alias_generator=AliasGenerator(validation_alias=to_camel, serialization_alias=to_camel),
-        populate_by_name=True,
-        frozen=True,
-    )
+    model_config = ConfigDict(frozen=True)
 
     id: str
     name: str

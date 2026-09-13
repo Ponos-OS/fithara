@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Literal
 
 from fastapi import HTTPException
-from pydantic import AliasGenerator, BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel
+
+from src.utils.api_model import CamelModel
 
 
 ErrorCode = Literal[
@@ -28,12 +29,7 @@ _STATUS_BY_CODE: dict[ErrorCode, int] = {
 }
 
 
-class ErrorDetail(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=AliasGenerator(validation_alias=to_camel, serialization_alias=to_camel),
-        populate_by_name=True,
-    )
-
+class ErrorDetail(CamelModel):
     code: ErrorCode
     message: str
     request_id: str | None = None
