@@ -93,7 +93,10 @@ extend-immutable-calls = ["fastapi.Depends"]
 "src.modules.draft.routes".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
 
 [tool.ruff.lint.per-file-ignores]
-"**/*__test.py" = ["S101"]
+# TID251 (barrel-import enforcement) is exempted for every *__test.py: unit tests
+# often exercise a symbol that's deliberately private (not re-exported from the
+# barrel), and it's not worth a per-file entry to say so each time.
+"**/*__test.py" = ["S101", "TID251"]
 "tests/**/*.py" = ["S101"]
 "src/utils/__init__.py" = ["TID251"]
 "src/utils/errors.py" = ["TID251"]  # sibling import of its own package's api_model.py
@@ -106,13 +109,6 @@ extend-immutable-calls = ["fastapi.Depends"]
 "src/modules/draft/rules.py" = ["TID251"]  # sibling import of its own package's types.py
 "src/modules/draft/agent.py" = ["TID251"]  # sibling import of its own package's types.py
 "src/modules/draft/routes.py" = ["TID251"]  # sibling import of its own package's types.py/agent.py
-# Exercises active_licenses_by_order/find_license_or_error, which are intentionally
-# not re-exported from the barrel — they're module-internal, not part of the public API.
-"src/modules/licenses/routes__test.py" = ["TID251"]
-# Exercises enforce_conversation_limits, intentionally not re-exported from the barrel.
-"src/modules/draft/routes__test.py" = ["TID251"]
-# Exercises _safe_error_fields, intentionally private (not re-exported from the barrel).
-"src/modules/draft/agent__test.py" = ["TID251"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
