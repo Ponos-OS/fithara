@@ -66,7 +66,7 @@
             }
           },
           "410": {
-            "description": "The license id is registered but retired (\u00a73.3): it no longer appears in `GET /v1/licenses` and cannot be selected for new drafts, but existing drafts referencing it still resolve via `POST /v1/draft`.",
+            "description": "The license id is registered but retired: it no longer appears in `GET /v1/licenses` and cannot be selected for new drafts, but existing drafts referencing it still resolve via `POST /v1/draft`.",
             "content": {
               "application/json": {
                 "example": {
@@ -146,7 +146,7 @@
           "error"
         ],
         "title": "ErrorResponse",
-        "description": "Wire shape for every error response (\u00a74.10)."
+        "description": "Wire shape for every error response this service returns."
       },
       "HTTPValidationError": {
         "properties": {

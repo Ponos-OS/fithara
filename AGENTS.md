@@ -10,6 +10,7 @@ A stateless, LLM-assisted Python service exposing a **REST API** that helps user
 - Be concise, short README, no emojis.
 - No extra feature, focus on what has been asked.
 - `BaseSettings` with a discriminator picking between interchangeable implementations (e.g. `Tts.default_provider`) → only the selected implementation's fields are required; enforce that via a `model_validator` on the parent, not a bare required field on each implementation.
+- Never cite a `REQUIREMENTS.md` section number (`§3.3`, `§4.10`, "Step B2", ...) in a comment, docstring, or commit message body meant to explain the code itself. `REQUIREMENTS.md` is archived and deleted once the feature ships (see Development Process below), so a `§`-reference in source code becomes a dead pointer the moment that happens. Explain the *why* in the comment itself instead, in terms that stay true without the spec present.
 
 ## Development Process
 

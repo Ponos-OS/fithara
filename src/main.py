@@ -12,7 +12,7 @@ from src.registry import get_registry
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    get_registry()  # forces the registry load; a malformed file aborts startup (§3.2)
+    get_registry()  # forces the registry load; a malformed license file aborts startup
     yield
 
 
@@ -22,7 +22,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def _http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-        """Return `exc.detail` as the body verbatim (§4.10's error envelope), not FastAPI's default `{"detail": ...}` wrapper."""
+        """Return `exc.detail` as the body verbatim, not FastAPI's default `{"detail": ...}` wrapper."""
 
         return JSONResponse(status_code=exc.status_code, content=exc.detail)
 

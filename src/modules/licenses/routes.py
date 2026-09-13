@@ -56,7 +56,7 @@ def _to_detail(license_: CanonicalLicense) -> LicenseDetail:
 def active_licenses_by_order(
     registry: tuple[CanonicalLicense, ...],
 ) -> list[CanonicalLicense]:
-    """Active licenses only, ordered by `order` (§4.4)."""
+    """Active licenses only, ordered by ascending `order`."""
 
     return sorted(
         (license_ for license_ in registry if license_.active), key=lambda license_: license_.order
@@ -66,7 +66,14 @@ def active_licenses_by_order(
 def find_license_or_error(
     registry: tuple[CanonicalLicense, ...], license_id: str
 ) -> CanonicalLicense:
-    """Look up a license by id, raising the §4.10 error for unknown/inactive ids (§3.3)."""
+    """
+    Look up a license by id.
+
+    Raises `UNKNOWN_LICENSE` (404) if the id was never registered, or
+    `LICENSE_INACTIVE` (410) if it's registered but retired — retired ids
+    stay resolvable here (for existing drafts referencing them) but drop
+    out of `GET /v1/licenses` and can't be selected for new drafts.
+    """
 
     for license_ in registry:
         if license_.id == license_id:
@@ -97,7 +104,7 @@ def list_licenses(
         410: {
             "model": ErrorResponse,
             "description": (
-                "The license id is registered but retired (§3.3): it no longer appears in "
+                "The license id is registered but retired: it no longer appears in "
                 "`GET /v1/licenses` and cannot be selected for new drafts, but existing drafts "
                 "referencing it still resolve via `POST /v1/draft`."
             ),

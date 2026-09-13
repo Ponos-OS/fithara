@@ -1,4 +1,4 @@
-"""Public API for src.registry — the canonical license registry (§3)."""
+"""Public API for src.registry — the canonical license registry."""
 
 from __future__ import annotations
 

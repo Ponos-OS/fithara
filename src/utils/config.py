@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Registry(BaseModel):
     """
-    Canonical license registry (§3).
+    Canonical license registry configuration.
 
     A plain `BaseModel`, not `BaseSettings`: a nested `BaseSettings` reads the
     whole process environment independently of its parent (case-insensitively,

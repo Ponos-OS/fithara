@@ -40,13 +40,13 @@ class ErrorDetail(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """Wire shape for every error response (§4.10)."""
+    """Wire shape for every error response this service returns."""
 
     error: ErrorDetail
 
 
 def api_error(code: ErrorCode, message: str) -> HTTPException:
-    """Build an `HTTPException` whose body matches the §4.10 error envelope."""
+    """Build an `HTTPException` whose body matches `ErrorResponse`'s shape."""
 
     return HTTPException(
         status_code=_STATUS_BY_CODE[code],

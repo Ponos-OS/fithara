@@ -15,4 +15,4 @@ order: 10
 
 # All Rights Reserved
 
-<!-- LEGAL REVIEW REQUIRED: verbatim license text pending counsel review (§7 of REQUIREMENTS.md). -->
+<!-- LEGAL REVIEW REQUIRED: verbatim license text pending counsel review. -->
