@@ -5,6 +5,7 @@ from pydantic_ai import Agent
 
 from src.modules.draft.agent import get_agent, run_draft_agent
 from src.modules.draft.types import DraftRequest, DraftResponse
+from src.registry import CanonicalLicense, get_registry
 from src.utils import Conversation, ErrorResponse, api_error, enforce_rate_limit, get_settings
 
 
@@ -57,8 +58,9 @@ async def draft(
     request: DraftRequest,
     agent: Agent[None, DraftResponse] = Depends(get_agent),
     limits: Conversation = Depends(get_conversation_limits),
+    registry: tuple[CanonicalLicense, ...] = Depends(get_registry),
 ) -> DraftResponse:
     enforce_conversation_limits(
         request, max_turns=limits.max_turns, max_message_chars=limits.max_message_chars
     )
-    return await run_draft_agent(request, agent=agent)
+    return await run_draft_agent(request, agent=agent, registry=registry)

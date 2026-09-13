@@ -22,8 +22,9 @@ from pydantic_ai import Agent, AgentRunError, ModelRetry
 from pydantic_ai.models import Model, infer_model
 from pydantic_ai.providers import infer_provider_class
 
+from src.modules.draft.rules import canonical_text_matches
 from src.modules.draft.types import ConversationTurn, DraftRequest, DraftResponse
-from src.registry import active_licenses_by_order, get_registry
+from src.registry import CanonicalLicense, active_licenses_by_order, get_registry
 from src.utils import get_settings
 
 
@@ -110,6 +111,30 @@ def get_agent() -> Agent[None, DraftResponse]:
     return build_agent(model)
 
 
+def _passes_canonical_integrity_check(
+    response: DraftResponse, registry: tuple[CanonicalLicense, ...]
+) -> bool:
+    """
+    Rule 1's enforcement point: a draft claiming `source.type == "canonical"`
+    must byte-equal the canonical body it claims to be — whether that's an
+    honest mistake or a successful prompt injection, the effect is the same
+    and the response must not reach the client as-is.
+    """
+
+    if response.draft is None or response.draft.source.type != "canonical":
+        return True
+
+    canonical_id = response.draft.source.canonical_id
+    if canonical_id is None:
+        return False
+
+    for license_ in registry:
+        if license_.id == canonical_id:
+            return canonical_text_matches(response.draft, license_.body_markdown)
+
+    return False
+
+
 def _turn_line(turn: ConversationTurn) -> str:
     return f"{turn.role}: {turn.content}"
 
@@ -130,7 +155,10 @@ def _build_prompt(request: DraftRequest) -> str:
 
 
 async def run_draft_agent(
-    request: DraftRequest, *, agent: Agent[None, DraftResponse] | None = None
+    request: DraftRequest,
+    *,
+    agent: Agent[None, DraftResponse] | None = None,
+    registry: tuple[CanonicalLicense, ...] | None = None,
 ) -> DraftResponse:
     """Run the drafting agent for one turn. Never raises — falls back to a safe response on any agent failure."""
 
@@ -139,6 +167,10 @@ async def run_draft_agent(
     try:
         result = await agent.run(_build_prompt(request))
     except AgentRunError:
+        return _FALLBACK_RESPONSE
+
+    registry = registry if registry is not None else get_registry()
+    if not _passes_canonical_integrity_check(result.output, registry):
         return _FALLBACK_RESPONSE
 
     return result.output

@@ -1,18 +1,21 @@
 import shutil
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic_ai import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from src.main import create_app
-from src.modules.draft import get_conversation_limits
+from src.modules.draft import build_agent, get_agent, get_conversation_limits
 from src.registry import get_registry, load_registry
 from src.utils import Conversation, RateLimiter, get_rate_limiter
 
 
 REAL_SCHEMA = Path(__file__).parent.parent / "src" / "licenses" / "_schema.json"
+FIXTURE_ACTIVE_BODY = "# Fixture Active License\n\nFixture license body for FIXTURE-ACTIVE."
 
 _LICENSE_TEMPLATE = """---
 id: {id}
@@ -83,3 +86,17 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as async_client:
         yield async_client
+
+
+@pytest.fixture
+def stub_agent() -> Callable[[FastAPI, dict], None]:
+    """Override `get_agent` on `app` so the drafting agent returns `payload` verbatim, no LLM call made."""
+
+    def _stub(app: FastAPI, payload: dict) -> None:
+        def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            tool_name = info.output_tools[0].name
+            return ModelResponse(parts=[ToolCallPart(tool_name, payload)])
+
+        app.dependency_overrides[get_agent] = lambda: build_agent(FunctionModel(respond))
+
+    return _stub
