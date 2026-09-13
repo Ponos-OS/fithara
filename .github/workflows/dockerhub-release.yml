@@ -1,0 +1,156 @@
+name: Release Docker image
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  check_release:
+    name: Check if a release is needed
+    runs-on: ubuntu-latest
+    outputs:
+      will_release: ${{ steps.decide.outputs.will_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install release deps
+        run: npm ci
+
+      - name: Decide via semantic-release --dry-run
+        id: decide
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          # Dry-run prints "The next release version is X.Y.Z" when a release would happen, and "There are no relevant changes, so no new version is released" otherwise. We capture stdout+stderr and grep for the decision line.
+          output="$(npm run --silent release -- --dry-run 2>&1)" || {
+            echo "$output"
+            echo "semantic-release --dry-run failed."
+            exit 1
+          }
+          echo "$output"
+          if echo "$output" | grep -q "The next release version is"; then
+            echo "will_release=true" >> "$GITHUB_OUTPUT"
+            echo "==> A release will be cut."
+          else
+            echo "will_release=false" >> "$GITHUB_OUTPUT"
+            echo "==> No release needed."
+          fi
+
+  unit_tests:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install Python deps
+        run: uv sync
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Check import architecture and lint
+        run: make lint_check
+
+      - name: Check docs/openapi.json is up to date
+        run: |
+          make schema
+          git diff --exit-code docs/openapi.json
+
+  integration_tests:
+    name: Run integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install Python deps
+        run: uv sync
+
+      # Includes the prompt-injection corpus (tests/test_prompt_injection.py) — the LLM
+      # is stubbed throughout, so this needs no live model and no Docker infra. No
+      # database/queue/object store (the service is stateless), so nothing to gate
+      # behind will_release here — unlike the Docker publish step below, this is cheap
+      # enough to run on every push.
+      - name: Run integration tests
+        run: make integration_test
+
+  release:
+    name: Release + publish Docker image
+    needs: [check_release, unit_tests, integration_tests]
+    if: ${{ needs.check_release.outputs.will_release == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install release deps
+        run: npm ci
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          # TODO: replace with the fithara Docker Hub account
+          username: CHANGEME_DOCKERHUB_USERNAME
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Release and publish Docker image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # TODO: replace with the fithara Docker Hub repo
+          DOCKERHUB_REPOSITORY: CHANGEME_DOCKERHUB_USERNAME/fithara
+        run: npm run release
