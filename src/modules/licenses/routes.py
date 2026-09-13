@@ -43,7 +43,13 @@ class LicenseDetail(LicenseSummary):
 
 
 class LicenseListResponse(CamelModel):
-    """The set of licenses currently offered to users."""
+    """
+    The set of licenses currently offered to users.
+
+    A retired license is never listed here, but its id still resolves via
+    `GET /v1/licenses/{id}` (as a `410`, not a `404`) and via `POST /v1/draft`
+    for drafts that already reference it.
+    """
 
     licenses: list[LicenseSummary]
 
@@ -79,7 +85,15 @@ def find_license_or_error(
     raise api_error("UNKNOWN_LICENSE", f"Unknown license id: {license_id}")
 
 
-@router.get("/v1/licenses", response_model=LicenseListResponse)
+@router.get(
+    "/v1/licenses",
+    response_model=LicenseListResponse,
+    description=(
+        "Returns only currently-offered licenses, ordered for display. A retired "
+        "license is omitted here but still resolves via `GET /v1/licenses/{id}` "
+        "(`410`, not `404`)."
+    ),
+)
 def list_licenses(
     registry: tuple[CanonicalLicense, ...] = Depends(get_registry),
 ) -> LicenseListResponse:
@@ -91,6 +105,11 @@ def list_licenses(
 @router.get(
     "/v1/licenses/{license_id}",
     response_model=LicenseDetail,
+    description=(
+        "Returns one license's full metadata and verbatim body. `404` means this id was "
+        "never registered; `410` means it was registered but is retired — see that "
+        "response's own description for what retired means for existing drafts."
+    ),
     responses={
         404: {
             "model": ErrorResponse,
