@@ -7,7 +7,7 @@ A stateless, LLM-assisted Python service exposing a **REST API** that helps user
 @.github/CONTRIBUTING.md
 
 - Comments only when necessary, this includes docstrings; don't add one just to restate what the name/code already say.
-- Exception to the rule above: every wire model (a Pydantic model used as a FastAPI `response_model` or request body) gets a class docstring, plus `Field(description=...)` on every field whose meaning isn't fully carried by its name and type alone (skip it on truly self-evident fields like `role: Literal["user", "assistant"]`). These aren't internal comments — FastAPI puts them straight into the generated OpenAPI schema and hosted docs, so they're user-facing documentation for whoever integrates against the API, not restated code. Add a realistic full-object example too, via `model_config = ConfigDict(json_schema_extra={"examples": [...]})`, on any request/response model substantial enough that one clarifies the shape (skip it on trivial one-or-two-field models). Do this without being asked, for every new or edited wire model.
+- Exception: wire models (FastAPI `response_model`/request bodies) get a class docstring, `Field(description=...)` on non-obvious fields, and a `json_schema_extra` example on substantial models — these land in the OpenAPI docs, so they're not "restating code." Do this by default, unasked.
 - Be concise, short README, no emojis.
 - No extra feature, focus on what has been asked.
 - `BaseSettings` with a discriminator picking between interchangeable implementations (e.g. `Tts.default_provider`) → only the selected implementation's fields are required; enforce that via a `model_validator` on the parent, not a bare required field on each implementation.
