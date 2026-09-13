@@ -13,9 +13,20 @@ from src.registry.models import CanonicalLicense
 
 _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.DOTALL)
 
+# Editors (e.g. Zed) reflow long lines of unfenced Markdown prose, corrupting verbatim
+# legal text. Files may wrap their whole body in a fenced code block purely to stop that
+# reflow; the fence itself is not part of the authoritative license text (§3.2), so it is
+# stripped back out here before the body is served or byte-compared (Rule 1, §4.9).
+_CODE_FENCE_RE = re.compile(r"\A```[^\n]*\n(.*)\n```\Z", re.DOTALL)
+
 
 class RegistryLoadError(Exception):
     """Raised when the canonical license registry cannot be loaded (§3.2)."""
+
+
+def _strip_formatting_fence(body: str) -> str:
+    match = _CODE_FENCE_RE.match(body)
+    return match.group(1) if match else body
 
 
 def _parse_file(path: Path, schema: dict) -> CanonicalLicense:
@@ -31,8 +42,10 @@ def _parse_file(path: Path, schema: dict) -> CanonicalLicense:
     except JsonSchemaValidationError as exc:
         raise RegistryLoadError(f"{path}: frontmatter failed schema validation: {exc.message}") from exc
 
+    body_markdown = _strip_formatting_fence(body.strip())
+
     try:
-        return CanonicalLicense.model_validate({**frontmatter, "body_markdown": body.strip()})
+        return CanonicalLicense.model_validate({**frontmatter, "body_markdown": body_markdown})
     except ValidationError as exc:
         raise RegistryLoadError(f"{path}: {exc}") from exc
 

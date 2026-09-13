@@ -73,3 +73,14 @@ def test_load_registry_loads_inactive_license_as_retrievable(registry_dir: Path)
 
     assert len(licenses) == 1
     assert licenses[0].active is False
+
+
+def test_load_registry_strips_code_fence_wrapping_the_body(registry_dir: Path) -> None:
+    fenced = VALID_FRONTMATTER.format(id="FENCED", active=True).replace(
+        "# Example License\n\nBody text.", "```text\n# Example License\n\nBody text.\n```"
+    )
+    (registry_dir / "fenced.md").write_text(fenced)
+
+    licenses = load_registry(registry_dir)
+
+    assert licenses[0].body_markdown == "# Example License\n\nBody text."
