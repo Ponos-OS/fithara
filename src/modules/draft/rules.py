@@ -32,6 +32,7 @@ def canonical_text_matches(draft: Draft, canonical_body: str) -> bool:
 
     if draft.source.type != "canonical":
         return True
+
     return draft.text == canonical_body
 
 
@@ -40,6 +41,7 @@ def fork_is_labeled(draft: Draft, canonical_body: str, canonical_name: str) -> b
 
     if draft.text == canonical_body:
         return True
+
     return draft.source.type == "forked" and draft.title != canonical_name
 
 
@@ -48,6 +50,7 @@ def custom_has_no_canonical_id(source: DraftSource) -> bool:
 
     if source.type != "custom":
         return True
+
     return source.canonical_id is None
 
 
@@ -58,4 +61,5 @@ def draft_unchanged_when_not_changed(
 
     if draft_changed:
         return True
+
     return new_draft == previous_draft

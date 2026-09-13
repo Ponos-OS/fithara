@@ -27,7 +27,6 @@ from src.utils import get_settings
 
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "v1.md"
-
 _FALLBACK_RESPONSE = DraftResponse(
     assistant_message=(
         "Sorry, I wasn't able to produce a reliable answer for that. "
