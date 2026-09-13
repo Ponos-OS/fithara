@@ -15,10 +15,11 @@ response instead of raising.
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic_ai import Agent, AgentRunError, ModelRetry
+from pydantic_ai import Agent, AgentRunError, ModelHTTPError, ModelRetry
 from pydantic_ai.models import Model, infer_model
 from pydantic_ai.providers import infer_provider_class
 
@@ -28,6 +29,7 @@ from src.registry import CanonicalLicense, active_licenses_by_order, get_registr
 from src.utils import get_settings
 
 
+_logger = logging.getLogger(__name__)
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "v1.md"
 _FALLBACK_RESPONSE = DraftResponse(
     assistant_message=(
@@ -135,6 +137,23 @@ def _passes_canonical_integrity_check(
     return False
 
 
+def _safe_error_fields(exc: AgentRunError) -> dict[str, object]:
+    """
+    Fields safe to log for an agent failure.
+
+    Deliberately never includes `str(exc)` or a `ModelHTTPError.body` — a
+    provider's HTTP error body can echo back request details, including the
+    API key we just sent it (confirmed against a real 401 response: OpenAI's
+    error body repeats the invalid key verbatim). No secrets in logs, full stop.
+    """
+
+    fields: dict[str, object] = {"error_type": type(exc).__name__}
+    if isinstance(exc, ModelHTTPError):
+        fields["status_code"] = exc.status_code
+        fields["model_name"] = exc.model_name
+    return fields
+
+
 def _turn_line(turn: ConversationTurn) -> str:
     return f"{turn.role}: {turn.content}"
 
@@ -166,11 +185,17 @@ async def run_draft_agent(
 
     try:
         result = await agent.run(_build_prompt(request))
-    except AgentRunError:
+    except AgentRunError as exc:
+        _logger.warning("draft_agent_llm_call_failed", extra=_safe_error_fields(exc))
         return _FALLBACK_RESPONSE
 
     registry = registry if registry is not None else get_registry()
     if not _passes_canonical_integrity_check(result.output, registry):
+        canonical_id = result.output.draft.source.canonical_id if result.output.draft else None
+        _logger.warning(
+            "draft_agent_canonical_integrity_check_failed",
+            extra={"canonical_id": canonical_id},
+        )
         return _FALLBACK_RESPONSE
 
     return result.output

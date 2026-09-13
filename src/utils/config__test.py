@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from src.utils import Settings
+from src.utils import LoggingMode, LogLevel, Settings
 
 
 def _settings() -> Settings:
@@ -38,6 +38,11 @@ def test_settings_defaults_apply_when_absent(monkeypatch) -> None:
     assert settings.rate_limit.per_minute == 60
     assert settings.conversation.max_turns == 50
     assert settings.conversation.max_message_chars == 4_000
+    assert settings.service_name == "fithara"
+    assert settings.logging.mode == LoggingMode.JSON
+    assert settings.logging.level == LogLevel.INFO
+    assert settings.otel.enabled is False
+    assert settings.otel.exporter_otlp_endpoint == "http://localhost:4318"
 
 
 def test_settings_reads_nested_registry_path_env_var(monkeypatch) -> None:
@@ -99,3 +104,33 @@ def test_settings_reads_conversation_nested_env_vars(monkeypatch) -> None:
 
     assert settings.conversation.max_turns == 10
     assert settings.conversation.max_message_chars == 500
+
+
+def test_settings_reads_logging_nested_env_vars(monkeypatch) -> None:
+    _set_required_llm_env(monkeypatch)
+    monkeypatch.setenv("LOGGING__MODE", "PLAIN_TEXT")
+    monkeypatch.setenv("LOGGING__LEVEL", "debug")
+
+    settings = _settings()  # act
+
+    assert settings.logging.mode == LoggingMode.PLAIN_TEXT
+    assert settings.logging.level == LogLevel.DEBUG
+
+
+def test_settings_reads_otel_nested_env_vars(monkeypatch) -> None:
+    _set_required_llm_env(monkeypatch)
+    monkeypatch.setenv("OTEL__ENABLED", "true")
+    monkeypatch.setenv("OTEL__EXPORTER_OTLP_ENDPOINT", "http://collector:4318")
+
+    settings = _settings()  # act
+
+    assert settings.otel.enabled is True
+    assert settings.otel.exporter_otlp_endpoint == "http://collector:4318"
+
+
+def test_settings_app_version_reads_pyproject_toml(monkeypatch) -> None:
+    _set_required_llm_env(monkeypatch)
+
+    settings = _settings()  # act
+
+    assert settings.app_version == "0.1.0"

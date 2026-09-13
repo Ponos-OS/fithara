@@ -1,8 +1,9 @@
 import pytest
-from pydantic_ai import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai import ModelHTTPError, ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from src.modules.draft import DraftRequest, build_agent, run_draft_agent
+from src.modules.draft.agent import _safe_error_fields
 from src.registry import CanonicalLicense
 
 
@@ -136,6 +137,19 @@ async def test_run_draft_agent_falls_back_after_repeated_invalid_output() -> Non
     assert response.draft_changed is False
     assert response.draft is None
     assert response.disclaimers
+
+
+def test_safe_error_fields_never_include_the_provider_error_body() -> None:
+    exc = ModelHTTPError(
+        status_code=401,
+        model_name="gpt-5.2",
+        body={"message": "Incorrect API key provided: sk-super-secret-value."},
+    )
+
+    fields = _safe_error_fields(exc)  # act
+
+    assert fields == {"error_type": "ModelHTTPError", "status_code": 401, "model_name": "gpt-5.2"}
+    assert "sk-super-secret-value" not in str(fields)
 
 
 async def test_run_draft_agent_falls_back_when_canonical_claim_has_tampered_body() -> None:
