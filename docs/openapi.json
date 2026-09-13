@@ -277,7 +277,7 @@
           "licenses"
         ],
         "title": "LicenseListResponse",
-        "description": "Response body for `GET /v1/licenses`."
+        "description": "The set of licenses currently offered to users."
       },
       "LicenseSummary": {
         "properties": {

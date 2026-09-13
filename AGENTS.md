@@ -7,7 +7,7 @@ A stateless, LLM-assisted Python service exposing a **REST API** that helps user
 @.github/CONTRIBUTING.md
 
 - Comments only when necessary, this includes docstrings; don't add one just to restate what the name/code already say.
-- Exception: wire models (FastAPI `response_model`/request bodies) get a class docstring, `Field(description=...)` on non-obvious fields, and a `json_schema_extra` example on substantial models — these land in the OpenAPI docs, so they're not "restating code." Do this by default, unasked.
+- Exception: wire models (FastAPI `response_model`/request bodies) get a class docstring, `Field(description=...)` on non-obvious fields, and a `json_schema_extra` example on substantial models — these land in the OpenAPI docs, so they're not "restating code." Do this by default, unasked. Docstring describes what the model *is* ("The assistant's reply to a draft turn"), never "Request/Response body for `METHOD /path`" — that duplicates the route wiring, drifts out of sync when routes move, and can't be linted for staleness.
 - Be concise, short README, no emojis.
 - No extra feature, focus on what has been asked.
 - `BaseSettings` with a discriminator picking between interchangeable implementations (e.g. `Tts.default_provider`) → only the selected implementation's fields are required; enforce that via a `model_validator` on the parent, not a bare required field on each implementation.

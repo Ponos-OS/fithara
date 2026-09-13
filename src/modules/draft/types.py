@@ -45,7 +45,7 @@ class Preferences(CamelModel):
 
 
 class DraftRequest(CamelModel):
-    """Request body for `POST /v1/draft`. Same shape on the first turn and every subsequent turn."""
+    """A user's message plus everything the client currently knows: conversation so far and current draft."""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -90,7 +90,7 @@ class DraftRequest(CamelModel):
 
 
 class DraftResponse(CamelModel):
-    """Response body for `POST /v1/draft`."""
+    """The assistant's reply: what it said, the (possibly updated) draft, and its recommendations."""
 
     model_config = ConfigDict(
         json_schema_extra={

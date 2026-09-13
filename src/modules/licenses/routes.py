@@ -58,7 +58,7 @@ class LicenseDetail(LicenseSummary):
 
 
 class LicenseListResponse(CamelModel):
-    """Response body for `GET /v1/licenses`."""
+    """The set of licenses currently offered to users."""
 
     licenses: list[LicenseSummary]
 
