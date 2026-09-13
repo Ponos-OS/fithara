@@ -35,7 +35,7 @@ integration_test:
 schema:
 	@echo "== exporting OpenAPI schema to docs/openapi.json =="
 	mkdir -p docs
-	uv run python -c "import json; from src.main import app; json.dump(app.openapi(), open('docs/openapi.json', 'w'), indent=2)"
+	uv run python -c "import json; from src.main import app; f = open('docs/openapi.json', 'w'); json.dump(app.openapi(), f, indent=2); f.write('\n')"
 	@echo "== wrote docs/openapi.json =="
 
 ## Check lint/format/types without mutating files (CI)

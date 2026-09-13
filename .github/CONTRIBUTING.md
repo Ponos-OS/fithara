@@ -21,8 +21,10 @@ Modular by feature, mirroring the sibling project `smart-novel-beatrice`: one di
 fithara/
 ├── src/
 │   ├── main.py                        # FastAPI app factory — only place routers are wired together (no side effects on import, see `make schema`)
-│   ├── config.py                      # Settings / get_settings() — pydantic-settings (§4.8)
-│   ├── config__test.py                # Unit tests: required fields, defaults, nested __ env vars
+│   ├── utils/                         # Cross-cutting concerns shared by every module — never LLM/business logic
+│   │   ├── config.py                  # Settings / get_settings() — pydantic-settings (§4.8)
+│   │   ├── config__test.py            # Unit tests: required fields, defaults, nested __ env vars
+│   │   └── errors.py                  # §4.10 error envelope (ErrorResponse) + api_error() helper
 │   ├── registry/                      # Canonical license registry (§3) — shared by both modules below
 │   │   ├── loader.py                  # Parses Markdown + YAML frontmatter from licenses/
 │   │   ├── loader__test.py            # Unit tests: valid/invalid files, unique IDs, boot-time failure
@@ -124,8 +126,9 @@ Prompts live at `src/modules/<module>/prompts/v1.md` (or `v1.jinja2` if a module
 5. Use `uv`; ALWAYS `uv run xxx` NEVER `python3 xxx`.
 6. Use latest version of libraries and idiomatic approaches as of today.
 7. Class owning an `httpx.AsyncClient` → see the `httpx-async-transport` skill.
-8. An enum/type that a module needs _and_ that `Settings` needs to reference (e.g. to pick which of that module's implementations to use) belongs in `src/config.py`, colocated with the other settings enums, not in the module itself. `Settings` is imported nearly everywhere, so defining that type in the module instead creates a straight import cycle the moment `Settings` needs it too.
+8. An enum/type that a module needs _and_ that `Settings` needs to reference (e.g. to pick which of that module's implementations to use) belongs in `src/utils/config.py`, colocated with the other settings enums, not in the module itself. `Settings` is imported nearly everywhere, so defining that type in the module instead creates a straight import cycle the moment `Settings` needs it too.
 9. Comma-separated / delimited env var on a `BaseSettings` field → see the `settings-list-env-field` skill.
 10. Asserting on `extra={...}` log fields via `caplog` → see the `caplog-extra-typing` skill.
 11. `pytest` resolving `src.*` imports in `*__test.py` files needs `[tool.pytest.ini_options] pythonpath = ["."]` in `pyproject.toml` — without it, pytest's rootdir-based discovery doesn't add the repo root to `sys.path` and every colocated unit test fails to collect with `ModuleNotFoundError: No module named 'src'`.
 12. This service is an application, not a distributable library, and `src/` isn't a package meant for `uv`'s build backend to install — set `[tool.uv] package = false` in `pyproject.toml` so `uv sync` doesn't try to build/install the project itself as a package (which fails without a matching package directory for the build backend to find).
+13. A nested settings group under `Settings` (e.g. `Registry`, `Llm`) must be a plain `pydantic.BaseModel`, not `BaseSettings`. A nested `BaseSettings` is itself an independent settings source: it reads the *whole* process environment case-insensitively, so a field like `Registry.path` silently binds to the ubiquitous `PATH` env var instead of only the `REGISTRY__PATH` slice `Settings.env_nested_delimiter` carves out for it. Only the outermost `Settings` class should subclass `BaseSettings`.

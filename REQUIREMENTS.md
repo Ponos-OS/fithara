@@ -242,8 +242,10 @@ uv.lock                       # committed lockfile
 Dockerfile                    # backend image (Step B8 / Part 5)
 src/
   main.py                     # FastAPI app factory — only place routers are wired together
-  config.py                   # Settings / get_settings() — see §4.8
-  config__test.py             # unit tests for Settings validation and defaults
+  utils/                      # cross-cutting concerns shared by every module
+    config.py                 # Settings / get_settings() — see §4.8
+    config__test.py           # unit tests for Settings validation and defaults
+    errors.py                 # §4.10 error envelope (ErrorResponse) + api_error() helper
   registry/                   # canonical license registry — shared by both modules below
     loader.py                 # loads markdown + frontmatter from licenses/
     loader__test.py           # unit tests: valid/invalid files, unique IDs
@@ -506,9 +508,9 @@ Consequences to accept:
 
 ## 4.8 Configuration as a service (pydantic-settings)
 
-Configuration is **not** a scattered set of `os.environ.get(...)` calls. It is a typed, validated `Settings` object built with `pydantic-settings`, following the exact pattern already established in the sibling project's `src/utils/config.py`: one `BaseSettings` subclass per concern, nested under a top-level `Settings`, wired together with `env_nested_delimiter="__"`, and exposed process-wide through an `lru_cache`d `get_settings()` accessor. This service has no TTS/RabbitMQ/OTel concerns, so the nesting is shallower, but the shape is the same.
+Configuration is **not** a scattered set of `os.environ.get(...)` calls. It is a typed, validated `Settings` object built with `pydantic-settings`, following the exact pattern already established in the sibling project's `src/utils/config.py`: nested settings groups as plain `pydantic.BaseModel`s under a top-level `Settings(BaseSettings)`, wired together with `env_nested_delimiter="__"`, and exposed process-wide through an `lru_cache`d `get_settings()` accessor. This service has no TTS/RabbitMQ/OTel concerns, so the nesting is shallower, but the shape is the same. Nested groups must be `BaseModel`, not `BaseSettings` — a nested `BaseSettings` reads the whole process environment independently and case-insensitively, so e.g. `Registry.path` would silently bind to the ubiquitous `PATH` env var instead of the `REGISTRY__PATH` slice `env_nested_delimiter` carves out for it.
 
-Location: `src/config.py`.
+Location: `src/utils/config.py`, alongside other cross-cutting concerns (§4.10's error envelope lives at `src/utils/errors.py`).
 
 ```python
 """
@@ -520,11 +522,11 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Llm(BaseSettings):
+class Llm(BaseModel):
     """LLM provider configuration for the PydanticAI agent (§4.6)."""
 
     provider: str = Field(description="PydanticAI provider identifier.")
@@ -533,22 +535,22 @@ class Llm(BaseSettings):
     timeout_ms: int = Field(default=30_000, ge=1_000)
 
 
-class Registry(BaseSettings):
+class Registry(BaseModel):
     """Canonical license registry (§3)."""
 
     path: Path = Field(
-        default=Path("./licenses"), description="Directory of canonical license Markdown files."
+        default=Path("./src/licenses"), description="Directory of canonical license Markdown files."
     )
 
 
-class Conversation(BaseSettings):
+class Conversation(BaseModel):
     """Bounds on client-supplied conversation input (§4.9)."""
 
     max_turns: int = Field(default=50, ge=1)
     max_message_chars: int = Field(default=4_000, ge=1)
 
 
-class RateLimit(BaseSettings):
+class RateLimit(BaseModel):
     """Per-key/IP rate limiting (§4.9). No retained content — counters only."""
 
     per_minute: int = Field(default=60, ge=1)
@@ -639,7 +641,7 @@ This is part of the acceptance criteria for Step B7 below, not an optional nice-
 
 This mirrors `smart-novel-beatrice`'s split between colocated unit tests and a top-level integration suite, not a from-scratch convention:
 
-- **Unit tests** are colocated with the module they test, named `<module>__test.py` next to `<module>.py` (e.g. `src/config.py` → `src/config__test.py`, `src/registry/loader.py` → `src/registry/loader__test.py`, `src/modules/draft/rules.py` → `src/modules/draft/rules__test.py`). Run via `make test`, which runs `uv run pytest src/ -v` — pytest discovers `*__test.py` throughout the `src/` tree. Nothing outside `src/` is touched.
+- **Unit tests** are colocated with the module they test, named `<module>__test.py` next to `<module>.py` (e.g. `src/utils/config.py` → `src/utils/config__test.py`, `src/registry/loader.py` → `src/registry/loader__test.py`, `src/modules/draft/rules.py` → `src/modules/draft/rules__test.py`). Run via `make test`, which runs `uv run pytest src/ -v` — pytest discovers `*__test.py` throughout the `src/` tree. Nothing outside `src/` is touched.
 - **Integration/e2e tests** live in a separate top-level `tests/` directory, with their own `tests/conftest.py` for shared fixtures. Run via `make integration_test`, which runs `uv run pytest tests/ -v` — a distinct pytest invocation over a distinct tree, exactly as `smart-novel-beatrice/Makefile` separates `test` (`pytest src/`) from `integration_test` (`pytest tests/`).
 - Both targets are already named in §4.13's Makefile target list; this section defines what goes in each tree.
 

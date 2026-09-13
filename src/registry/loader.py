@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -12,6 +13,7 @@ from jsonschema import (
 from pydantic import ValidationError
 
 from src.registry.models import CanonicalLicense
+from src.utils.config import get_settings
 
 
 class RegistryLoadError(Exception):
@@ -74,3 +76,14 @@ def load_registry(licenses_dir: Path) -> tuple[CanonicalLicense, ...]:
         seen_ids.add(license_.id)
 
     return tuple(licenses)
+
+
+@lru_cache(maxsize=1)
+def get_registry() -> tuple[CanonicalLicense, ...]:
+    """
+    Return the process-wide registry, loaded once from `Settings.registry.path`.
+
+    A FastAPI dependency, overridable in tests via `app.dependency_overrides`.
+    """
+
+    return load_registry(get_settings().registry.path)

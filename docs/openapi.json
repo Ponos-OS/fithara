@@ -1,0 +1,363 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Fithara",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/licenses": {
+      "get": {
+        "tags": [
+          "licenses"
+        ],
+        "summary": "List Licenses",
+        "operationId": "list_licenses_v1_licenses_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/licenses/{license_id}": {
+      "get": {
+        "tags": [
+          "licenses"
+        ],
+        "summary": "Get License",
+        "operationId": "get_license_v1_licenses__license_id__get",
+        "parameters": [
+          {
+            "name": "license_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "License Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown license id \u2014 this service has never registered it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "The license id is registered but retired (\u00a73.3): it no longer appears in `GET /v1/licenses` and cannot be selected for new drafts, but existing drafts referencing it still resolve via `POST /v1/draft`.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "LICENSE_INACTIVE",
+                    "message": "License is no longer offered: CC-BY-4.0"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "INVALID_REQUEST",
+              "UNKNOWN_LICENSE",
+              "LICENSE_INACTIVE",
+              "RATE_LIMITED",
+              "LLM_UNAVAILABLE",
+              "LLM_INVALID_OUTPUT",
+              "INTERNAL"
+            ],
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "description": "Wire shape for every error response (\u00a74.10)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LicenseDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "shortName": {
+            "type": "string",
+            "title": "Shortname"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "officialUrl": {
+            "type": "string",
+            "title": "Officialurl"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "conditions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conditions"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "version",
+          "category",
+          "officialUrl",
+          "summary",
+          "permissions",
+          "limitations",
+          "conditions",
+          "body"
+        ],
+        "title": "LicenseDetail",
+        "description": "Canonical license metadata plus its verbatim body."
+      },
+      "LicenseListResponse": {
+        "properties": {
+          "licenses": {
+            "items": {
+              "$ref": "#/components/schemas/LicenseSummary"
+            },
+            "type": "array",
+            "title": "Licenses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "licenses"
+        ],
+        "title": "LicenseListResponse"
+      },
+      "LicenseSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "shortName": {
+            "type": "string",
+            "title": "Shortname"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "officialUrl": {
+            "type": "string",
+            "title": "Officialurl"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "conditions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conditions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "version",
+          "category",
+          "officialUrl",
+          "summary",
+          "permissions",
+          "limitations",
+          "conditions"
+        ],
+        "title": "LicenseSummary",
+        "description": "Canonical license metadata, without the (large) body text."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
