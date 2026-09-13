@@ -19,7 +19,8 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic_ai import Agent, AgentRunError, ModelRetry
-from pydantic_ai.models import Model
+from pydantic_ai.models import Model, infer_model
+from pydantic_ai.providers import infer_provider_class
 
 from src.modules.draft.types import ConversationTurn, DraftRequest, DraftResponse
 from src.registry import active_licenses_by_order, get_registry
@@ -89,10 +90,24 @@ def build_agent(model: str | Model) -> Agent[None, DraftResponse]:
 
 @lru_cache(maxsize=1)
 def get_agent() -> Agent[None, DraftResponse]:
-    """The process-wide production agent, built from `Settings.llm`."""
+    """
+    The process-wide production agent, built from `Settings.llm`.
+
+    A model string alone (`Agent("openai:gpt-5.2")`) makes PydanticAI build its
+    own provider client from that provider's conventional env var (e.g.
+    `OPENAI_API_KEY`), ignoring `Settings.llm.api_key` entirely. Building the
+    provider explicitly with our own `api_key` is what actually wires the
+    configured key up.
+    """
 
     settings = get_settings().llm
-    return build_agent(f"{settings.provider}:{settings.model}")
+    provider = infer_provider_class(settings.provider)(
+        api_key=settings.api_key  # pyright: ignore[reportCallIssue]
+    )
+    model = infer_model(
+        f"{settings.provider}:{settings.model}", provider_factory=lambda _: provider
+    )
+    return build_agent(model)
 
 
 def _turn_line(turn: ConversationTurn) -> str:

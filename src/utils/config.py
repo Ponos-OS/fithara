@@ -33,6 +33,12 @@ class Registry(BaseModel):
     )
 
 
+class RateLimit(BaseModel):
+    """Per-key/IP rate limiting. No retained content — counters only."""
+
+    per_minute: int = Field(default=60, ge=1)
+
+
 class Settings(BaseSettings):
     """Runtime configuration surface."""
 
@@ -48,6 +54,7 @@ class Settings(BaseSettings):
 
     llm: Llm = Field(default_factory=Llm)  # pyright: ignore[reportArgumentType]
     registry: Registry = Field(default_factory=Registry)
+    rate_limit: RateLimit = Field(default_factory=RateLimit)
 
 
 @lru_cache(maxsize=1)

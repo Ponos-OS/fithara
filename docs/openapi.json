@@ -93,10 +93,280 @@
           }
         }
       }
+    },
+    "/v1/draft": {
+      "post": {
+        "tags": [
+          "draft"
+        ],
+        "summary": "Draft",
+        "operationId": "draft_v1_draft_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation, e.g. an empty `message`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this client within the configured rate-limit window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ConversationTurn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "examples": [
+              "I want a license that lets people remix my novel but not sell it."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ConversationTurn",
+        "description": "One message in the conversation history, supplied by the client."
+      },
+      "Draft": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "examples": [
+              "Creative Commons Attribution-NonCommercial 4.0 International"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "The draft's license text, as Markdown.",
+            "examples": [
+              "# Creative Commons Attribution-NonCommercial 4.0 International\n\n..."
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/DraftSource"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "text",
+          "source"
+        ],
+        "title": "Draft",
+        "description": "The license text a user is currently working on."
+      },
+      "DraftRequest": {
+        "properties": {
+          "conversation": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationTurn"
+            },
+            "type": "array",
+            "title": "Conversation",
+            "description": "Full conversation history, client-supplied. May be empty on the first turn."
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Draft"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current draft state, client-supplied. May be null on the first turn."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message",
+            "description": "The new user message. Required, non-empty.",
+            "examples": [
+              "what does section 3 mean?"
+            ]
+          },
+          "preferences": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Preferences"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional hints. Not hard constraints."
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "DraftRequest",
+        "description": "A user's message plus everything the client currently knows: conversation so far and current draft."
+      },
+      "DraftResponse": {
+        "properties": {
+          "assistantMessage": {
+            "type": "string",
+            "title": "Assistantmessage",
+            "examples": [
+              "Section 3 covers the attribution requirement..."
+            ]
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Draft"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current draft state after this turn. Null if no draft exists yet."
+          },
+          "draftChanged": {
+            "type": "boolean",
+            "title": "Draftchanged",
+            "description": "True iff the assistant created or modified the draft this turn."
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations",
+            "description": "Canonical license IDs the assistant suggests.",
+            "examples": [
+              [
+                "CC-BY-NC-4.0",
+                "CC-BY-NC-SA-4.0"
+              ]
+            ]
+          },
+          "disclaimers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Disclaimers",
+            "description": "Always non-empty. The client must render these.",
+            "examples": [
+              [
+                "This is not legal advice. Consult a qualified lawyer before relying on this draft."
+              ]
+            ]
+          },
+          "isReadyToFinalize": {
+            "type": "boolean",
+            "title": "Isreadytofinalize",
+            "description": "The assistant's opinion on readiness. The client decides whether to act on it."
+          }
+        },
+        "type": "object",
+        "required": [
+          "assistantMessage",
+          "draft",
+          "draftChanged",
+          "recommendations",
+          "disclaimers",
+          "isReadyToFinalize"
+        ],
+        "title": "DraftResponse",
+        "description": "The assistant's reply: what it said, the (possibly updated) draft, and its recommendations."
+      },
+      "DraftSource": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "canonical",
+              "forked",
+              "custom"
+            ],
+            "title": "Type"
+          },
+          "canonicalId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonicalid",
+            "description": "The canonical license this draft is based on. Set when type is 'canonical' or 'forked'; always null for 'custom'.",
+            "examples": [
+              "CC-BY-NC-4.0"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "DraftSource",
+        "description": "Where a draft's text came from: an untouched canonical license, a fork of one, or fully custom."
+      },
       "ErrorDetail": {
         "properties": {
           "code": {
@@ -403,6 +673,28 @@
         ],
         "title": "LicenseSummary",
         "description": "Canonical license metadata, without the (large) body text."
+      },
+      "Preferences": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "A canonical license category to prefer, e.g. 'creative_commons'.",
+            "examples": [
+              "creative_commons"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "Preferences",
+        "description": "Optional hints for the assistant. Never hard constraints."
       },
       "ValidationError": {
         "properties": {

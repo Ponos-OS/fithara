@@ -63,6 +63,7 @@ class DraftRequest(CamelModel):
         description="Current draft state, client-supplied. May be null on the first turn.",
     )
     message: str = Field(
+        min_length=1,
         examples=["what does section 3 mean?"],
         description="The new user message. Required, non-empty.",
     )

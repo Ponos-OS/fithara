@@ -59,6 +59,14 @@ ignore = [
     "E501",     # line-length handled by formatter
 ]
 
+# ruff's B008 (no function calls in argument defaults) special-cases `Depends(...)` for FastAPI
+# route handlers, but only when the parameter's type annotation is unsubscripted or `tuple[X, ...]`
+# — a subscripted annotation like `list[int]` or `Agent[None, Out]` isn't recognized and gets
+# flagged as a false positive. `Depends` is always safe as a default (that's the whole point of
+# FastAPI's dependency injection), so exempt it outright rather than annotate around the quirk.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends"]
+
 # Packages with a barrel `__init__.py` (src/utils, src/registry, src/modules/licenses, ...)
 # must be imported as `from src.utils import X`, never by reaching into the submodule that
 # actually defines X. Add a "<package>.<submodule>" entry here whenever a new barrel package
@@ -69,24 +77,28 @@ ignore = [
 "src.utils.config".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
 "src.utils.errors".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
 "src.utils.api_model".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
+"src.utils.rate_limit".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
 "src.registry.loader".msg = "Import from the src.registry barrel instead: `from src.registry import ...`."
 "src.registry.models".msg = "Import from the src.registry barrel instead: `from src.registry import ...`."
 "src.modules.licenses.routes".msg = "Import from the src.modules.licenses barrel instead: `from src.modules.licenses import ...`."
 "src.modules.draft.types".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
 "src.modules.draft.rules".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
 "src.modules.draft.agent".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
+"src.modules.draft.routes".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
 
 [tool.ruff.lint.per-file-ignores]
 "**/*__test.py" = ["S101"]
 "tests/**/*.py" = ["S101"]
 "src/utils/__init__.py" = ["TID251"]
 "src/utils/errors.py" = ["TID251"]  # sibling import of its own package's api_model.py
+"src/utils/rate_limit.py" = ["TID251"]  # sibling import of its own package's config.py/errors.py
 "src/registry/__init__.py" = ["TID251"]
 "src/registry/loader.py" = ["TID251"]  # sibling import of its own package's models.py
 "src/modules/licenses/__init__.py" = ["TID251"]
 "src/modules/draft/__init__.py" = ["TID251"]
 "src/modules/draft/rules.py" = ["TID251"]  # sibling import of its own package's types.py
 "src/modules/draft/agent.py" = ["TID251"]  # sibling import of its own package's types.py
+"src/modules/draft/routes.py" = ["TID251"]  # sibling import of its own package's types.py/agent.py
 # Exercises active_licenses_by_order/find_license_or_error, which are intentionally
 # not re-exported from the barrel — they're module-internal, not part of the public API.
 "src/modules/licenses/routes__test.py" = ["TID251"]
