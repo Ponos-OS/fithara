@@ -66,9 +66,12 @@ ignore = [
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "src.utils.config".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
 "src.utils.errors".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
+"src.utils.api_model".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
 "src.registry.loader".msg = "Import from the src.registry barrel instead: `from src.registry import ...`."
 "src.registry.models".msg = "Import from the src.registry barrel instead: `from src.registry import ...`."
 "src.modules.licenses.routes".msg = "Import from the src.modules.licenses barrel instead: `from src.modules.licenses import ...`."
+"src.modules.draft.types".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
+"src.modules.draft.rules".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
 
 [tool.ruff.lint.per-file-ignores]
 "**/*__test.py" = ["S101"]
@@ -77,6 +80,8 @@ ignore = [
 "src/registry/__init__.py" = ["TID251"]
 "src/registry/loader.py" = ["TID251"]  # sibling import of its own package's models.py
 "src/modules/licenses/__init__.py" = ["TID251"]
+"src/modules/draft/__init__.py" = ["TID251"]
+"src/modules/draft/rules.py" = ["TID251"]  # sibling import of its own package's types.py
 # Exercises active_licenses_by_order/find_license_or_error, which are intentionally
 # not re-exported from the barrel — they're module-internal, not part of the public API.
 "src/modules/licenses/routes__test.py" = ["TID251"]

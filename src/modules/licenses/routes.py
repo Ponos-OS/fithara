@@ -1,24 +1,15 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from pydantic import AliasGenerator, BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 
 from src.registry import CanonicalLicense, get_registry
-from src.utils import ErrorResponse, api_error
+from src.utils import CamelModel, ErrorResponse, api_error
 
 
 router = APIRouter(tags=["licenses"])
 
 
-class _CamelModel(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=AliasGenerator(validation_alias=to_camel, serialization_alias=to_camel),
-        populate_by_name=True,
-    )
-
-
-class LicenseSummary(_CamelModel):
+class LicenseSummary(CamelModel):
     """Canonical license metadata, without the (large) body text."""
 
     id: str
@@ -39,7 +30,7 @@ class LicenseDetail(LicenseSummary):
     body: str
 
 
-class LicenseListResponse(_CamelModel):
+class LicenseListResponse(CamelModel):
     licenses: list[LicenseSummary]
 
 
