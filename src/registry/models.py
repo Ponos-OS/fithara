@@ -8,7 +8,9 @@ class CanonicalLicense(BaseModel):
     """A single canonical license loaded from `src/licenses/*.md` (§3, §4.3)."""
 
     model_config = ConfigDict(
-        alias_generator=AliasGenerator(validation_alias=to_camel, serialization_alias=to_camel),
+        alias_generator=AliasGenerator(
+            validation_alias=to_camel, serialization_alias=to_camel
+        ),
         populate_by_name=True,
         frozen=True,
     )

@@ -11,26 +11,28 @@ from pydantic import ValidationError
 
 from src.registry.models import CanonicalLicense
 
-_FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.DOTALL)
-
-# Editors (e.g. Zed) reflow long lines of unfenced Markdown prose, corrupting verbatim
-# legal text. Files may wrap their whole body in a fenced code block purely to stop that
-# reflow; the fence itself is not part of the authoritative license text (§3.2), so it is
-# stripped back out here before the body is served or byte-compared (Rule 1, §4.9).
-_CODE_FENCE_RE = re.compile(r"\A```[^\n]*\n(.*)\n```\Z", re.DOTALL)
-
 
 class RegistryLoadError(Exception):
-    """Raised when the canonical license registry cannot be loaded (§3.2)."""
+    """Raised when the canonical license registry cannot be loaded."""
 
 
 def _strip_formatting_fence(body: str) -> str:
+    """
+    The whole body of a license must be in a fenced code block.
+    To stop IDEs from formatting it.
+    Stripped from the coding block before the body is served.
+    """
+    _CODE_FENCE_RE = re.compile(r"\A```[^\n]*\n(.*)\n```\Z", re.DOTALL)
+
     match = _CODE_FENCE_RE.match(body)
+
     return match.group(1) if match else body
 
 
 def _parse_file(path: Path, schema: dict) -> CanonicalLicense:
+    _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.DOTALL)
     match = _FRONTMATTER_RE.match(path.read_text(encoding="utf-8"))
+
     if not match:
         raise RegistryLoadError(f"{path}: missing YAML frontmatter delimited by '---'")
 
@@ -40,30 +42,35 @@ def _parse_file(path: Path, schema: dict) -> CanonicalLicense:
     try:
         validate_json_schema(frontmatter, schema)
     except JsonSchemaValidationError as exc:
-        raise RegistryLoadError(f"{path}: frontmatter failed schema validation: {exc.message}") from exc
+        raise RegistryLoadError(
+            f"{path}: frontmatter failed schema validation: {exc.message}"
+        ) from exc
 
     body_markdown = _strip_formatting_fence(body.strip())
 
     try:
-        return CanonicalLicense.model_validate({**frontmatter, "body_markdown": body_markdown})
+        return CanonicalLicense.model_validate(
+            {**frontmatter, "body_markdown": body_markdown}
+        )
     except ValidationError as exc:
         raise RegistryLoadError(f"{path}: {exc}") from exc
 
 
 def load_registry(licenses_dir: Path) -> tuple[CanonicalLicense, ...]:
-    """Load and validate all canonical licenses under `licenses_dir` (§3.1-3.2).
+    """
+    Load and validate all canonical licenses under `licenses_dir`.
 
-    Raises `RegistryLoadError` on any malformed file or duplicate id — the
-    caller (app startup) must let this propagate rather than log-and-continue.
+    Raises `RegistryLoadError` on any malformed file or duplicate id.
+    The caller (app startup) must let this propagate rather than log-and-continue.
     """
     schema = json.loads((licenses_dir / "_schema.json").read_text(encoding="utf-8"))
-
     licenses = [_parse_file(path, schema) for path in sorted(licenses_dir.glob("*.md"))]
-
     seen_ids: set[str] = set()
+
     for license_ in licenses:
         if license_.id in seen_ids:
             raise RegistryLoadError(f"duplicate canonical license id: {license_.id}")
+
         seen_ids.add(license_.id)
 
     return tuple(licenses)

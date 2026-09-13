@@ -28,8 +28,12 @@ Body text.
 """
 
 
-def _write_license(directory: Path, filename: str, license_id: str, active: bool = True) -> None:
-    (directory / filename).write_text(VALID_FRONTMATTER.format(id=license_id, active=active))
+def _write_license(
+    directory: Path, filename: str, license_id: str, active: bool = True
+) -> None:
+    (directory / filename).write_text(
+        VALID_FRONTMATTER.format(id=license_id, active=active)
+    )
 
 
 @pytest.fixture
@@ -52,7 +56,9 @@ def test_load_registry_loads_valid_fixture_directory(registry_dir: Path) -> None
 
 
 def test_load_registry_raises_on_malformed_frontmatter(registry_dir: Path) -> None:
-    (registry_dir / "bad.md").write_text("---\nid: BAD\nname: Missing required fields\n---\nBody.\n")
+    (registry_dir / "bad.md").write_text(
+        "---\nid: BAD\nname: Missing required fields\n---\nBody.\n"
+    )
 
     with pytest.raises(RegistryLoadError):
         load_registry(registry_dir)
@@ -66,7 +72,9 @@ def test_load_registry_raises_on_duplicate_ids(registry_dir: Path) -> None:
         load_registry(registry_dir)
 
 
-def test_load_registry_loads_inactive_license_as_retrievable(registry_dir: Path) -> None:
+def test_load_registry_loads_inactive_license_as_retrievable(
+    registry_dir: Path,
+) -> None:
     _write_license(registry_dir, "inactive.md", "INACTIVE-ONE", active=False)
 
     licenses = load_registry(registry_dir)
@@ -77,7 +85,8 @@ def test_load_registry_loads_inactive_license_as_retrievable(registry_dir: Path)
 
 def test_load_registry_strips_code_fence_wrapping_the_body(registry_dir: Path) -> None:
     fenced = VALID_FRONTMATTER.format(id="FENCED", active=True).replace(
-        "# Example License\n\nBody text.", "```text\n# Example License\n\nBody text.\n```"
+        "# Example License\n\nBody text.",
+        "```text\n# Example License\n\nBody text.\n```",
     )
     (registry_dir / "fenced.md").write_text(fenced)
 

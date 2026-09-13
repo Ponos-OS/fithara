@@ -148,11 +148,31 @@ order: 40
 ## 3.2 Rules
 
 - **Loaded at startup, read-only at runtime.** No endpoint writes to the registry.
-- **Verbatim body.** The Markdown body must be the authoritative text. The service must never return a paraphrased canonical body.
+- **Verbatim body.** The Markdown body must be the authoritative text. The service must never return a paraphrased canonical body. See §3.2.1 for the code-fence convention used to protect this on disk.
 - **Stable IDs.** `id` is the machine identifier and must never change once published. Use a new ID for a new license version.
 - **Frontmatter is validated** against `_schema.json` at startup. The service refuses to boot with invalid canonical files.
 - **Registry changes go through git.** PR + review. There is no admin UI and no runtime mutation endpoint.
 - **Inactive licenses** are excluded from `GET /v1/licenses` but remain addressable by `GET /v1/licenses/{id}`, which returns `410 Gone` (see §4.10 error codes and §3.3 below — this is the decided policy, not an open question).
+
+## 3.2.1 On-disk formatting-fence convention
+
+Editors (e.g. Zed) reflow long lines of unfenced Markdown prose on save, which corrupts verbatim legal text. To stop this without relying on per-IDE configuration (no single file/setting reliably disables formatting across all editors), a license file's entire body **may** be wrapped in a single fenced code block:
+
+````markdown
+---
+id: CC-BY-NC-4.0
+...
+---
+
+```text
+[Verbatim canonical license text here.]
+```
+````
+
+- The fence is a **display/tooling convention only** — it is not part of the authoritative license text.
+- `src/registry/loader.py` strips a fence that wraps the *entire* body immediately after reading it, before constructing `CanonicalLicense.body_markdown`. This is the single point every consumer (`GET /v1/licenses/{id}`, the LLM's `get_canonical_license` tool, and the Rule 1 canonical-integrity byte-equality check in §4.9) reads through, so the fence never leaks into a served response, an LLM prompt, or a byte-comparison.
+- `ALL-RIGHTS-RESERVED.md` is not fenced — its body is currently just a `<!-- LEGAL REVIEW REQUIRED -->` placeholder, not prose that needs reflow protection.
+- Unit-tested in `src/registry/loader__test.py`.
 
 ## 3.3 What "inactive" means
 
