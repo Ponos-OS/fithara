@@ -3,7 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from src.registry import RegistryLoadError, load_registry
+from src.registry import (
+    CanonicalLicense,
+    RegistryLoadError,
+    active_licenses_by_order,
+    load_registry,
+)
 
 
 REAL_SCHEMA = Path(__file__).parent.parent / "licenses" / "_schema.json"
@@ -90,3 +95,34 @@ def test_load_registry_strips_code_fence_wrapping_the_body(registry_dir: Path) -
     licenses = load_registry(registry_dir)  # act
 
     assert licenses[0].body_markdown == "# Example License\n\nBody text."
+
+
+def _license(**overrides) -> CanonicalLicense:
+    defaults = {
+        "id": "EXAMPLE",
+        "name": "Example License",
+        "short_name": "Example",
+        "version": "1.0",
+        "category": "creative_commons",
+        "official_url": "https://example.com/license",
+        "summary": "An example.",
+        "permissions": ["share"],
+        "limitations": [],
+        "conditions": ["attribution"],
+        "active": True,
+        "order": 10,
+        "body_markdown": "Body text.",
+    }
+    return CanonicalLicense(**{**defaults, **overrides})
+
+
+def test_active_licenses_by_order_excludes_inactive_and_sorts_by_order() -> None:
+    registry = (
+        _license(id="LOW", order=20),
+        _license(id="INACTIVE", order=5, active=False),
+        _license(id="HIGH", order=10),
+    )
+
+    result = active_licenses_by_order(registry)  # act
+
+    assert [license_.id for license_ in result] == ["HIGH", "LOW"]

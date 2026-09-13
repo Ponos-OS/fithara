@@ -1,0 +1,130 @@
+"""
+The PydanticAI agent behind `POST /v1/draft`.
+
+Exposes the canonical registry to the LLM as tools and forces its output
+into the `DraftResponse` shape. PydanticAI retries once on its own (its
+default output-validation retry budget) when the LLM's structured output
+fails to validate; if the retry also fails, `run_draft_agent` catches the
+resulting `AgentRunError` and returns a safe, schema-valid fallback
+response instead of raising.
+
+`get_agent()`/`build_agent()` are deliberately lazy: nothing here reads
+`Settings` or the prompt file at import time, so importing this module
+(even once it's wired into `main.py`) stays side-effect-free.
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic_ai import Agent, AgentRunError, ModelRetry
+from pydantic_ai.models import Model
+
+from src.modules.draft.types import ConversationTurn, DraftRequest, DraftResponse
+from src.registry import active_licenses_by_order, get_registry
+from src.utils import get_settings
+
+
+_PROMPT_PATH = Path(__file__).parent / "prompts" / "v1.md"
+
+_FALLBACK_RESPONSE = DraftResponse(
+    assistant_message=(
+        "Sorry, I wasn't able to produce a reliable answer for that. "
+        "Please try rephrasing your request."
+    ),
+    draft=None,
+    draft_changed=False,
+    recommendations=[],
+    disclaimers=[
+        "This is not legal advice. Consult a qualified lawyer before relying on this draft."
+    ],
+    is_ready_to_finalize=False,
+)
+
+
+@lru_cache(maxsize=1)
+def _load_system_prompt() -> str:
+    return _PROMPT_PATH.read_text(encoding="utf-8")
+
+
+def build_agent(model: str | Model) -> Agent[None, DraftResponse]:
+    """
+    Build a drafting agent for the given model.
+
+    Production uses `get_agent()`. Tests pass `"test"` (PydanticAI's no-op
+    sentinel model) or a `TestModel`/`FunctionModel` instance directly, then
+    `.override(model=...)` to control what it returns — no settings or API
+    key needed.
+    """
+
+    agent: Agent[None, DraftResponse] = Agent(model, output_type=DraftResponse)
+
+    @agent.instructions
+    def _instructions() -> str:
+        return _load_system_prompt()
+
+    @agent.tool_plain
+    def list_canonical_licenses() -> list[dict[str, object]]:
+        """List the canonical licenses currently offered to users."""
+
+        return [
+            license_.model_dump(by_alias=True, exclude={"body_markdown"})
+            for license_ in active_licenses_by_order(get_registry())
+        ]
+
+    @agent.tool_plain
+    def get_canonical_license(id: str) -> dict[str, object]:
+        """Fetch one canonical license's full metadata and verbatim body by id."""
+
+        for license_ in get_registry():
+            if license_.id == id:
+                return license_.model_dump(by_alias=True)
+
+        raise ModelRetry(
+            f"Unknown canonical license id: {id!r}. Call list_canonical_licenses to see valid ids."
+        )
+
+    return agent
+
+
+@lru_cache(maxsize=1)
+def get_agent() -> Agent[None, DraftResponse]:
+    """The process-wide production agent, built from `Settings.llm`."""
+
+    settings = get_settings().llm
+    return build_agent(f"{settings.provider}:{settings.model}")
+
+
+def _turn_line(turn: ConversationTurn) -> str:
+    return f"{turn.role}: {turn.content}"
+
+
+def _build_prompt(request: DraftRequest) -> str:
+    lines = [_turn_line(turn) for turn in request.conversation]
+
+    if request.draft is not None:
+        lines.append(
+            f"Current draft (source type: {request.draft.source.type}):\n{request.draft.text}"
+        )
+    if request.preferences is not None and request.preferences.category is not None:
+        lines.append(f"Preferred category: {request.preferences.category}")
+
+    lines.append(_turn_line(ConversationTurn(role="user", content=request.message)))
+
+    return "\n\n".join(lines)
+
+
+async def run_draft_agent(
+    request: DraftRequest, *, agent: Agent[None, DraftResponse] | None = None
+) -> DraftResponse:
+    """Run the drafting agent for one turn. Never raises — falls back to a safe response on any agent failure."""
+
+    agent = agent or get_agent()
+
+    try:
+        result = await agent.run(_build_prompt(request))
+    except AgentRunError:
+        return _FALLBACK_RESPONSE
+
+    return result.output

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from pydantic import ConfigDict, Field
 
-from src.registry import CanonicalLicense, get_registry
+from src.registry import CanonicalLicense, active_licenses_by_order, get_registry
 from src.utils import CamelModel, ErrorResponse, api_error
 
 
@@ -70,16 +70,6 @@ def _to_summary(license_: CanonicalLicense) -> LicenseSummary:
 def _to_detail(license_: CanonicalLicense) -> LicenseDetail:
     return LicenseDetail.model_validate(
         {**license_.model_dump(by_alias=True), "body": license_.body_markdown}
-    )
-
-
-def active_licenses_by_order(
-    registry: tuple[CanonicalLicense, ...],
-) -> list[CanonicalLicense]:
-    """Active licenses only, ordered by ascending `order`."""
-
-    return sorted(
-        (license_ for license_ in registry if license_.active), key=lambda license_: license_.order
     )
 
 

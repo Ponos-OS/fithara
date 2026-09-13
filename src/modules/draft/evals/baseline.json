@@ -1,0 +1,10 @@
+{
+  "note": "Placeholder baseline: no LLM__* provider has been configured to run `make evals` for real yet. Once it has, regenerate this file with `make evals_baseline`.",
+  "cases": {
+    "recommendation_only": "not_yet_run",
+    "canonical_match": "not_yet_run",
+    "fork": "not_yet_run",
+    "pure_explanation": "not_yet_run",
+    "refusal": "not_yet_run"
+  }
+}

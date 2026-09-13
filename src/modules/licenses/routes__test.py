@@ -1,10 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from src.modules.licenses.routes import (
-    active_licenses_by_order,
-    find_license_or_error,
-)
+from src.modules.licenses.routes import find_license_or_error
 from src.registry import CanonicalLicense
 from src.utils import ErrorResponse
 
@@ -26,18 +23,6 @@ def _license(**overrides) -> CanonicalLicense:
         "body_markdown": "Body text.",
     }
     return CanonicalLicense(**{**defaults, **overrides})
-
-
-def test_active_licenses_by_order_excludes_inactive_and_sorts_by_order() -> None:
-    registry = (
-        _license(id="LOW", order=20),
-        _license(id="INACTIVE", order=5, active=False),
-        _license(id="HIGH", order=10),
-    )
-
-    result = active_licenses_by_order(registry)  # act
-
-    assert [license_.id for license_ in result] == ["HIGH", "LOW"]
 
 
 def test_find_license_or_error_returns_active_license() -> None:

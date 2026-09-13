@@ -87,3 +87,13 @@ def get_registry() -> tuple[CanonicalLicense, ...]:
     """
 
     return load_registry(get_settings().registry.path)
+
+
+def active_licenses_by_order(
+    registry: tuple[CanonicalLicense, ...],
+) -> list[CanonicalLicense]:
+    """Active licenses only, ordered by ascending `order` — the ones offered to users."""
+
+    return sorted(
+        (license_ for license_ in registry if license_.active), key=lambda license_: license_.order
+    )

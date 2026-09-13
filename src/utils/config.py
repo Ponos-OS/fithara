@@ -7,6 +7,17 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class Llm(BaseModel):
+    """LLM provider configuration for the PydanticAI drafting agent."""
+
+    provider: str = Field(
+        description="PydanticAI provider identifier, e.g. 'openai' or 'anthropic'."
+    )
+    model: str = Field(description="Model name for the drafting agent, e.g. 'gpt-5.2'.")
+    api_key: str = Field(description="Provider API key.")
+    timeout_ms: int = Field(default=30_000, ge=1_000)
+
+
 class Registry(BaseModel):
     """
     Canonical license registry configuration.
@@ -35,6 +46,7 @@ class Settings(BaseSettings):
 
     port: int = Field(default=8000, description="HTTP port to bind.")
 
+    llm: Llm = Field(default_factory=Llm)  # pyright: ignore[reportArgumentType]
     registry: Registry = Field(default_factory=Registry)
 
 

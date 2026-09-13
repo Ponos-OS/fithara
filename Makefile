@@ -38,6 +38,14 @@ schema:
 	uv run python -c "import json; from src.main import app; f = open('docs/openapi.json', 'w'); json.dump(app.openapi(), f, indent=2); f.write('\n')"
 	@echo "== wrote docs/openapi.json =="
 
+## Run the draft agent's golden-scenario evals against a live LLM (non-blocking, needs LLM__* configured)
+evals:
+	uv run python -m src.modules.draft.evals.run
+
+## Promote the last `make evals` report.json to the committed baseline.json
+evals_baseline:
+	cp src/modules/draft/evals/report.json src/modules/draft/evals/baseline.json
+
 ## Check lint/format/types without mutating files (CI)
 lint_check:
 	uv run ruff check .
@@ -55,4 +63,4 @@ clean:
 	rm -rf .venv .pytest_cache .ruff_cache .mypy_cache .pyright build dist *.egg-info
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
 
-.PHONY: help init start_dev start test integration_test schema lint_check lint clean
+.PHONY: help init start_dev start test integration_test schema evals evals_baseline lint_check lint clean
