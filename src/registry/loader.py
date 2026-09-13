@@ -5,8 +5,10 @@ import re
 from pathlib import Path
 
 import yaml
-from jsonschema import ValidationError as JsonSchemaValidationError
-from jsonschema import validate as validate_json_schema
+from jsonschema import (
+    ValidationError as JsonSchemaValidationError,
+    validate as validate_json_schema,
+)
 from pydantic import ValidationError
 
 from src.registry.models import CanonicalLicense
@@ -22,16 +24,16 @@ def _strip_formatting_fence(body: str) -> str:
     To stop IDEs from formatting it.
     Stripped from the coding block before the body is served.
     """
-    _CODE_FENCE_RE = re.compile(r"\A```[^\n]*\n(.*)\n```\Z", re.DOTALL)
+    code_fence_re = re.compile(r"\A```[^\n]*\n(.*)\n```\Z", re.DOTALL)
 
-    match = _CODE_FENCE_RE.match(body)
+    match = code_fence_re.match(body)
 
     return match.group(1) if match else body
 
 
 def _parse_file(path: Path, schema: dict) -> CanonicalLicense:
-    _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.DOTALL)
-    match = _FRONTMATTER_RE.match(path.read_text(encoding="utf-8"))
+    frontmatter_re = re.compile(r"\A---\n(.*?)\n---\n(.*)\Z", re.DOTALL)
+    match = frontmatter_re.match(path.read_text(encoding="utf-8"))
 
     if not match:
         raise RegistryLoadError(f"{path}: missing YAML frontmatter delimited by '---'")
@@ -49,9 +51,7 @@ def _parse_file(path: Path, schema: dict) -> CanonicalLicense:
     body_markdown = _strip_formatting_fence(body.strip())
 
     try:
-        return CanonicalLicense.model_validate(
-            {**frontmatter, "body_markdown": body_markdown}
-        )
+        return CanonicalLicense.model_validate({**frontmatter, "body_markdown": body_markdown})
     except ValidationError as exc:
         raise RegistryLoadError(f"{path}: {exc}") from exc
 

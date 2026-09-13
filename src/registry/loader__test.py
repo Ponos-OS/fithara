@@ -5,6 +5,7 @@ import pytest
 
 from src.registry.loader import RegistryLoadError, load_registry
 
+
 REAL_SCHEMA = Path(__file__).parent.parent / "licenses" / "_schema.json"
 
 VALID_FRONTMATTER = """---
@@ -28,12 +29,8 @@ Body text.
 """
 
 
-def _write_license(
-    directory: Path, filename: str, license_id: str, active: bool = True
-) -> None:
-    (directory / filename).write_text(
-        VALID_FRONTMATTER.format(id=license_id, active=active)
-    )
+def _write_license(directory: Path, filename: str, license_id: str, active: bool = True) -> None:
+    (directory / filename).write_text(VALID_FRONTMATTER.format(id=license_id, active=active))
 
 
 @pytest.fixture
@@ -46,7 +43,7 @@ def test_load_registry_loads_valid_fixture_directory(registry_dir: Path) -> None
     _write_license(registry_dir, "one.md", "EXAMPLE-ONE")
     _write_license(registry_dir, "two.md", "EXAMPLE-TWO")
 
-    licenses = load_registry(registry_dir)
+    licenses = load_registry(registry_dir)  # act
 
     assert len(licenses) == 2
     assert {license_.id for license_ in licenses} == {"EXAMPLE-ONE", "EXAMPLE-TWO"}
@@ -77,7 +74,7 @@ def test_load_registry_loads_inactive_license_as_retrievable(
 ) -> None:
     _write_license(registry_dir, "inactive.md", "INACTIVE-ONE", active=False)
 
-    licenses = load_registry(registry_dir)
+    licenses = load_registry(registry_dir)  # act
 
     assert len(licenses) == 1
     assert licenses[0].active is False
@@ -90,6 +87,6 @@ def test_load_registry_strips_code_fence_wrapping_the_body(registry_dir: Path) -
     )
     (registry_dir / "fenced.md").write_text(fenced)
 
-    licenses = load_registry(registry_dir)
+    licenses = load_registry(registry_dir)  # act
 
     assert licenses[0].body_markdown == "# Example License\n\nBody text."

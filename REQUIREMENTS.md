@@ -293,17 +293,17 @@ class CanonicalLicense(BaseModel):
     conditions: list[str]
     active: bool
     order: int
-    body_markdown: str          # verbatim canonical text
+    body_markdown: str  # verbatim canonical text
 
 
 class DraftSource(BaseModel):
     type: Literal["canonical", "forked", "custom"]
-    canonical_id: str | None = None   # present when type is canonical or forked
+    canonical_id: str | None = None  # present when type is canonical or forked
 
 
 class Draft(BaseModel):
     title: str
-    text: str                   # markdown
+    text: str  # markdown
     source: DraftSource
 
 
@@ -327,7 +327,7 @@ class DraftResponse(BaseModel):
     assistant_message: str
     draft: Draft | None
     draft_changed: bool
-    recommendations: list[str]      # canonical IDs
+    recommendations: list[str]  # canonical IDs
     disclaimers: list[str]
     is_ready_to_finalize: bool
 ```
@@ -536,7 +536,9 @@ class Llm(BaseSettings):
 class Registry(BaseSettings):
     """Canonical license registry (§3)."""
 
-    path: Path = Field(default=Path("./licenses"), description="Directory of canonical license Markdown files.")
+    path: Path = Field(
+        default=Path("./licenses"), description="Directory of canonical license Markdown files."
+    )
 
 
 class Conversation(BaseSettings):
