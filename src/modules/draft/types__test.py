@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from src.modules.draft import (
     ConversationTurn,
     Draft,
@@ -50,6 +53,17 @@ def test_draft_request_round_trips_with_null_draft_and_preferences() -> None:
     assert dumped["draft"] is None
     assert dumped["preferences"] is None
     assert DraftRequest.model_validate(dumped) == request
+
+
+def test_draft_request_strips_message_whitespace() -> None:
+    request = DraftRequest(message="  what does section 3 mean?  ")  # act
+
+    assert request.message == "what does section 3 mean?"
+
+
+def test_draft_request_rejects_whitespace_only_message() -> None:
+    with pytest.raises(ValidationError):
+        DraftRequest(message="   ")
 
 
 def test_draft_request_round_trips_with_conversation_and_draft() -> None:
