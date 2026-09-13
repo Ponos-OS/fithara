@@ -19,3 +19,14 @@
 **Why:** All three code-pattern gotchas (nested `BaseSettings`, FastAPI's `HTTPException` wrapping, and the schema-hook newline fight) are reusable facts about this stack, not one-off step context — future steps (B4's `Llm` settings, B5's `RateLimit`/`Conversation` settings, any new endpoint using `api_error()`) would hit the same traps again. Recorded in `CONTRIBUTING.md` per `SELF_IMPROVE.md` step 3; the Makefile fix needed no doc entry since the corrected command is self-evidently right on inspection.
 
 **Not generalized to `PROCESS.md`:** all three are code/config-pattern issues, not step-loop issues — `PROCESS.md`'s existing loop already caught them (via `config__test.py` and the integration suite) before commit, exactly as intended.
+
+## Step B3 — 2026-09-13
+
+**What changed:**
+- Sharpened `CONTRIBUTING.md` item 3's `flake8-aaa` note: the Act-block heuristic's `result = ...` is literal — an assignment to any other name (e.g. `dumped = draft.model_dump(...)`) is not recognized and fails `AAA01`. `src/modules/draft/types__test.py` hit this on every round-trip test; fixed by adding `# act` comments rather than renaming to the less-descriptive `result`.
+- Extracted `src.utils.CamelModel` (the alias-generator `ConfigDict` previously duplicated in `registry/models.py`, `errors.py`, and `licenses/routes.py`) since the six new draft models would have made it four-plus copies. Migrated `CanonicalLicense` and `ErrorDetail` onto it too, in a follow-up commit, rather than leaving `CONTRIBUTING.md`'s new item 16 describe a convention the existing models didn't actually follow.
+- That migration surfaced a real gotcha, logged as `CONTRIBUTING.md` item 16: manually merging a subclass's `model_config` (`ConfigDict(**Parent.model_config, frozen=True)`) hits both `ruff`'s `RUF012` (dict-literal-via-unpacking reads as a mutable default) and a `pyright` overload conflict (it can't prove `frozen` isn't already in the unpacked `TypedDict`). Pydantic v2 already merges `model_config` across the inheritance chain key-by-key, so the fix was simply not merging by hand: `model_config = ConfigDict(frozen=True)` on the subclass is enough.
+
+**Why:** All three are reusable code/tooling facts, not step-specific context — future steps will keep writing round-trip tests (hitting the `flake8-aaa` naming quirk again) and keep adding wire models (hitting the `CamelModel` question again). Recorded in `CONTRIBUTING.md` per `SELF_IMPROVE.md` step 3.
+
+**Not generalized to `PROCESS.md`:** no step-loop issue this time — `PROCESS.md`'s existing loop (run tests, run lint, run pyright before commit) caught all three before they shipped, exactly as intended. This step also had no HTTP surface (types/rules only, not wired into `main.py`), so `rest-api-tester` was correctly skipped per the existing instruction in `PROCESS.md` step 4.
