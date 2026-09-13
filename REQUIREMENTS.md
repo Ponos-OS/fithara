@@ -113,7 +113,6 @@ Canonical licenses are stored as Markdown files with YAML frontmatter.
 ```
 licenses/
   _schema.json
-  ALL-RIGHTS-RESERVED.md
   CC-BY-4.0.md
   CC-BY-SA-4.0.md
   CC-BY-NC-4.0.md
@@ -171,7 +170,6 @@ id: CC-BY-NC-4.0
 
 - The fence is a **display/tooling convention only** — it is not part of the authoritative license text.
 - `src/registry/loader.py` strips a fence that wraps the *entire* body immediately after reading it, before constructing `CanonicalLicense.body_markdown`. This is the single point every consumer (`GET /v1/licenses/{id}`, the LLM's `get_canonical_license` tool, and the Rule 1 canonical-integrity byte-equality check in §4.9) reads through, so the fence never leaks into a served response, an LLM prompt, or a byte-comparison.
-- `ALL-RIGHTS-RESERVED.md` is not fenced — its body is currently just a `<!-- LEGAL REVIEW REQUIRED -->` placeholder, not prose that needs reflow protection.
 - Unit-tested in `src/registry/loader__test.py`.
 
 ## 3.3 What "inactive" means
@@ -207,13 +205,14 @@ In every case the Markdown file remains in `licenses/`; only `active` changes.
 
 | ID                    | Category         | Notes                                      |
 | --------------------- | ---------------- | ------------------------------------------ |
-| `ALL-RIGHTS-RESERVED` | reserved         | Default when no public reuse is intended   |
 | `CC-BY-4.0`           | creative_commons | Attribution only                           |
 | `CC-BY-SA-4.0`        | creative_commons | Attribution + share-alike                  |
 | `CC-BY-NC-4.0`        | creative_commons | Attribution + non-commercial               |
 | `CC-BY-NC-SA-4.0`     | creative_commons | Attribution + non-commercial + share-alike |
 
 Public domain dedication is deliberately **not** included in v1. It has jurisdiction-specific complications and should only be added after legal review.
+
+**"No public license" is deliberately not a registry entry.** An `ALL-RIGHTS-RESERVED` canonical license was considered and dropped: unlike the Creative Commons licenses above, "all rights reserved" has no authoritative legal text to be verbatim about — it's the *absence* of a public license grant, not a license with published terms, so there was nothing for a canonical registry entry to actually hold beyond an internally-authored notice. When an author wants no public reuse, Rule 3 (§4.5, "no base means custom") already covers it — the assistant explains that no license is needed, or drafts a custom notice, rather than recommending a canonical entry that was never really a canonical license in the first place.
 
 ---
 

@@ -58,7 +58,6 @@ fithara/
 │   │           └── report.json        # Last eval run output (regenerated each run)
 │   └── licenses/                      # Canonical license Markdown files (§3.1), loaded read-only at startup
 │       ├── _schema.json               # Frontmatter schema — enforced at boot
-│       ├── ALL-RIGHTS-RESERVED.md
 │       ├── CC-BY-4.0.md
 │       ├── CC-BY-SA-4.0.md
 │       ├── CC-BY-NC-4.0.md
