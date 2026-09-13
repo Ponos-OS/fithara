@@ -169,58 +169,98 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Stable machine-readable identifier, e.g. 'CC-BY-NC-4.0'."
+            "description": "Stable machine-readable identifier.",
+            "examples": [
+              "CC-BY-NC-4.0"
+            ]
           },
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "examples": [
+              "Creative Commons Attribution-NonCommercial 4.0 International"
+            ]
           },
           "shortName": {
             "type": "string",
-            "title": "Shortname"
+            "title": "Shortname",
+            "examples": [
+              "CC BY-NC 4.0"
+            ]
           },
           "version": {
             "type": "string",
-            "title": "Version"
+            "title": "Version",
+            "examples": [
+              "4.0"
+            ]
           },
           "category": {
             "type": "string",
-            "title": "Category"
+            "title": "Category",
+            "examples": [
+              "creative_commons"
+            ]
           },
           "officialUrl": {
             "type": "string",
             "title": "Officialurl",
-            "description": "Link to the authoritative license text."
+            "description": "Link to the authoritative license text.",
+            "examples": [
+              "https://creativecommons.org/licenses/by-nc/4.0/legalcode"
+            ]
           },
           "summary": {
             "type": "string",
-            "title": "Summary"
+            "title": "Summary",
+            "examples": [
+              "Allows others to share and adapt the work for non-commercial purposes, provided they give appropriate credit."
+            ]
           },
           "permissions": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Permissions"
+            "title": "Permissions",
+            "examples": [
+              [
+                "share",
+                "adapt"
+              ]
+            ]
           },
           "limitations": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Limitations"
+            "title": "Limitations",
+            "examples": [
+              [
+                "non_commercial"
+              ]
+            ]
           },
           "conditions": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Conditions"
+            "title": "Conditions",
+            "examples": [
+              [
+                "attribution"
+              ]
+            ]
           },
           "body": {
             "type": "string",
             "title": "Body",
-            "description": "The verbatim canonical license text, as Markdown. Never paraphrased."
+            "description": "The verbatim canonical license text, as Markdown. Never paraphrased.",
+            "examples": [
+              "# Creative Commons Attribution-NonCommercial 4.0 International\n\n..."
+            ]
           }
         },
         "type": "object",
@@ -238,29 +278,7 @@
           "body"
         ],
         "title": "LicenseDetail",
-        "description": "Canonical license metadata plus its verbatim body.",
-        "examples": [
-          {
-            "body": "# Creative Commons ...",
-            "category": "creative_commons",
-            "conditions": [
-              "attribution"
-            ],
-            "id": "CC-BY-NC-4.0",
-            "limitations": [
-              "non_commercial"
-            ],
-            "name": "Creative Commons Attribution-NonCommercial 4.0 International",
-            "officialUrl": "https://creativecommons.org/licenses/by-nc/4.0/legalcode",
-            "permissions": [
-              "share",
-              "adapt"
-            ],
-            "shortName": "CC BY-NC 4.0",
-            "summary": "Allows others to share and adapt the work for non-commercial purposes, provided they give appropriate credit.",
-            "version": "4.0"
-          }
-        ]
+        "description": "Canonical license metadata plus its verbatim body."
       },
       "LicenseListResponse": {
         "properties": {
@@ -284,53 +302,90 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Stable machine-readable identifier, e.g. 'CC-BY-NC-4.0'."
+            "description": "Stable machine-readable identifier.",
+            "examples": [
+              "CC-BY-NC-4.0"
+            ]
           },
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "examples": [
+              "Creative Commons Attribution-NonCommercial 4.0 International"
+            ]
           },
           "shortName": {
             "type": "string",
-            "title": "Shortname"
+            "title": "Shortname",
+            "examples": [
+              "CC BY-NC 4.0"
+            ]
           },
           "version": {
             "type": "string",
-            "title": "Version"
+            "title": "Version",
+            "examples": [
+              "4.0"
+            ]
           },
           "category": {
             "type": "string",
-            "title": "Category"
+            "title": "Category",
+            "examples": [
+              "creative_commons"
+            ]
           },
           "officialUrl": {
             "type": "string",
             "title": "Officialurl",
-            "description": "Link to the authoritative license text."
+            "description": "Link to the authoritative license text.",
+            "examples": [
+              "https://creativecommons.org/licenses/by-nc/4.0/legalcode"
+            ]
           },
           "summary": {
             "type": "string",
-            "title": "Summary"
+            "title": "Summary",
+            "examples": [
+              "Allows others to share and adapt the work for non-commercial purposes, provided they give appropriate credit."
+            ]
           },
           "permissions": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Permissions"
+            "title": "Permissions",
+            "examples": [
+              [
+                "share",
+                "adapt"
+              ]
+            ]
           },
           "limitations": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Limitations"
+            "title": "Limitations",
+            "examples": [
+              [
+                "non_commercial"
+              ]
+            ]
           },
           "conditions": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Conditions"
+            "title": "Conditions",
+            "examples": [
+              [
+                "attribution"
+              ]
+            ]
           }
         },
         "type": "object",
@@ -347,28 +402,7 @@
           "conditions"
         ],
         "title": "LicenseSummary",
-        "description": "Canonical license metadata, without the (large) body text.",
-        "examples": [
-          {
-            "category": "creative_commons",
-            "conditions": [
-              "attribution"
-            ],
-            "id": "CC-BY-NC-4.0",
-            "limitations": [
-              "non_commercial"
-            ],
-            "name": "Creative Commons Attribution-NonCommercial 4.0 International",
-            "officialUrl": "https://creativecommons.org/licenses/by-nc/4.0/legalcode",
-            "permissions": [
-              "share",
-              "adapt"
-            ],
-            "shortName": "CC BY-NC 4.0",
-            "summary": "Allows others to share and adapt the work for non-commercial purposes, provided they give appropriate credit.",
-            "version": "4.0"
-          }
-        ]
+        "description": "Canonical license metadata, without the (large) body text."
       },
       "ValidationError": {
         "properties": {

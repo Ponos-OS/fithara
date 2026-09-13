@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
 from src.registry import CanonicalLicense, active_licenses_by_order, get_registry
 from src.utils import CamelModel, ErrorResponse, api_error
@@ -9,51 +9,36 @@ from src.utils import CamelModel, ErrorResponse, api_error
 
 router = APIRouter(tags=["licenses"])
 
-_LICENSE_SUMMARY_EXAMPLE = {
-    "id": "CC-BY-NC-4.0",
-    "name": "Creative Commons Attribution-NonCommercial 4.0 International",
-    "shortName": "CC BY-NC 4.0",
-    "version": "4.0",
-    "category": "creative_commons",
-    "officialUrl": "https://creativecommons.org/licenses/by-nc/4.0/legalcode",
-    "summary": (
-        "Allows others to share and adapt the work for non-commercial purposes, "
-        "provided they give appropriate credit."
-    ),
-    "permissions": ["share", "adapt"],
-    "limitations": ["non_commercial"],
-    "conditions": ["attribution"],
-}
-
 
 class LicenseSummary(CamelModel):
     """Canonical license metadata, without the (large) body text."""
 
-    model_config = ConfigDict(json_schema_extra={"examples": [_LICENSE_SUMMARY_EXAMPLE]})
-
-    id: str = Field(description="Stable machine-readable identifier, e.g. 'CC-BY-NC-4.0'.")
-    name: str
-    short_name: str
-    version: str
-    category: str
-    official_url: str = Field(description="Link to the authoritative license text.")
-    summary: str
-    permissions: list[str]
-    limitations: list[str]
-    conditions: list[str]
+    id: str = Field(examples=["CC-BY-NC-4.0"], description="Stable machine-readable identifier.")
+    name: str = Field(examples=["Creative Commons Attribution-NonCommercial 4.0 International"])
+    short_name: str = Field(examples=["CC BY-NC 4.0"])
+    version: str = Field(examples=["4.0"])
+    category: str = Field(examples=["creative_commons"])
+    official_url: str = Field(
+        examples=["https://creativecommons.org/licenses/by-nc/4.0/legalcode"],
+        description="Link to the authoritative license text.",
+    )
+    summary: str = Field(
+        examples=[
+            "Allows others to share and adapt the work for non-commercial purposes, "
+            "provided they give appropriate credit."
+        ]
+    )
+    permissions: list[str] = Field(examples=[["share", "adapt"]])
+    limitations: list[str] = Field(examples=[["non_commercial"]])
+    conditions: list[str] = Field(examples=[["attribution"]])
 
 
 class LicenseDetail(LicenseSummary):
     """Canonical license metadata plus its verbatim body."""
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{**_LICENSE_SUMMARY_EXAMPLE, "body": "# Creative Commons ..."}]
-        }
-    )
-
     body: str = Field(
-        description="The verbatim canonical license text, as Markdown. Never paraphrased."
+        examples=["# Creative Commons Attribution-NonCommercial 4.0 International\n\n..."],
+        description="The verbatim canonical license text, as Markdown. Never paraphrased.",
     )
 
 
