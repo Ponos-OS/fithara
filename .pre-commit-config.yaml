@@ -53,6 +53,13 @@ repos:
         types: [python]
         pass_filenames: false
         verbose: true
+      - id: import-linter
+        name: "import-linter (barrel-package import architecture, see pyproject.toml)"
+        entry: bash -c 'uv run lint-imports'
+        language: system
+        types: [python]
+        pass_filenames: false
+        verbose: true
       - id: flake8-aaa
         name: "flake8-aaa (AAA structure — sync tests only, see CONTRIBUTING.md)"
         entry: uv run flake8

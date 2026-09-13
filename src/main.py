@@ -21,10 +21,8 @@ from src.utils import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    # Deferred to startup, not import time, same reason as get_registry() below:
-    # `make schema` imports this module's `app` directly and must not need
-    # Settings() (LLM__* etc.) to be constructible just to dump the OpenAPI schema.
     settings = get_settings()
+    # If OTel fails we fail fast. No service will start.
     setup_observability(settings, version=settings.app_version)
 
     get_registry()  # forces the registry load; a malformed license file aborts startup

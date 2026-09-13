@@ -32,6 +32,7 @@ dev = [
     "pyright>=1.1.389",
     "pre-commit>=4.0",
     "flake8-aaa>=0.17.2",
+    "import-linter>=2.15",
 ]
 
 [tool.pytest.ini_options]
@@ -58,7 +59,6 @@ select = [
     "SIM",      # simplify
     "N",        # naming
     "RUF",      # ruff-specific
-    "TID",      # flake8-tidy-imports — enforces the barrel-import convention below
 ]
 ignore = [
     "E501",     # line-length handled by formatter
@@ -72,43 +72,9 @@ ignore = [
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends"]
 
-# Packages with a barrel `__init__.py` (src/utils, src/registry, src/modules/licenses, ...)
-# must be imported as `from src.utils import X`, never by reaching into the submodule that
-# actually defines X. Add a "<package>.<submodule>" entry here whenever a new barrel package
-# is introduced. Per-file-ignores below list the deliberate exceptions: the barrel file itself
-# (which has to import from its own submodules) and unit tests exercising a symbol that is
-# intentionally private (not re-exported).
-[tool.ruff.lint.flake8-tidy-imports.banned-api]
-"src.utils.config".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
-"src.utils.errors".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
-"src.utils.api_model".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
-"src.utils.rate_limit".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
-"src.utils.observability".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
-"src.registry.loader".msg = "Import from the src.registry barrel instead: `from src.registry import ...`."
-"src.registry.models".msg = "Import from the src.registry barrel instead: `from src.registry import ...`."
-"src.modules.licenses.routes".msg = "Import from the src.modules.licenses barrel instead: `from src.modules.licenses import ...`."
-"src.modules.draft.types".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
-"src.modules.draft.rules".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
-"src.modules.draft.agent".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
-"src.modules.draft.routes".msg = "Import from the src.modules.draft barrel instead: `from src.modules.draft import ...`."
-
 [tool.ruff.lint.per-file-ignores]
-# TID251 (barrel-import enforcement) is exempted for every *__test.py: unit tests
-# often exercise a symbol that's deliberately private (not re-exported from the
-# barrel), and it's not worth a per-file entry to say so each time.
-"**/*__test.py" = ["S101", "TID251"]
+"**/*__test.py" = ["S101"]
 "tests/**/*.py" = ["S101"]
-"src/utils/__init__.py" = ["TID251"]
-"src/utils/errors.py" = ["TID251"]  # sibling import of its own package's api_model.py
-"src/utils/rate_limit.py" = ["TID251"]  # sibling import of its own package's config.py/errors.py
-"src/utils/observability.py" = ["TID251"]  # sibling import of its own package's config.py
-"src/registry/__init__.py" = ["TID251"]
-"src/registry/loader.py" = ["TID251"]  # sibling import of its own package's models.py
-"src/modules/licenses/__init__.py" = ["TID251"]
-"src/modules/draft/__init__.py" = ["TID251"]
-"src/modules/draft/rules.py" = ["TID251"]  # sibling import of its own package's types.py
-"src/modules/draft/agent.py" = ["TID251"]  # sibling import of its own package's types.py
-"src/modules/draft/routes.py" = ["TID251"]  # sibling import of its own package's types.py/agent.py
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
@@ -127,3 +93,36 @@ pythonVersion = "3.12"
 typeCheckingMode = "standard"
 reportMissingImports = "error"
 reportMissingTypeStubs = "none"
+
+# Every package with a barrel `__init__.py` (src/utils, src/registry, src/modules/licenses,
+# src/modules/draft, ...) is "protected": nothing outside it may import a submodule directly
+# (`from src.utils.config import Settings`), only via the barrel (`from src.utils import Settings`).
+# `**` matches at any depth, so a new file added to an existing package needs no config change
+# here at all — only a brand new barrel package needs its own contract. Run via `make lint_check`
+# (`lint-imports`).
+[tool.importlinter]
+root_package = "src"
+
+[[tool.importlinter.contracts]]
+name = "src.utils internals are private"
+type = "protected"
+protected_modules = ["src.utils.**"]
+allowed_importers = ["src.utils", "src.utils.**"]
+
+[[tool.importlinter.contracts]]
+name = "src.registry internals are private"
+type = "protected"
+protected_modules = ["src.registry.**"]
+allowed_importers = ["src.registry", "src.registry.**"]
+
+[[tool.importlinter.contracts]]
+name = "src.modules.licenses internals are private"
+type = "protected"
+protected_modules = ["src.modules.licenses.**"]
+allowed_importers = ["src.modules.licenses", "src.modules.licenses.**"]
+
+[[tool.importlinter.contracts]]
+name = "src.modules.draft internals are private"
+type = "protected"
+protected_modules = ["src.modules.draft.**"]
+allowed_importers = ["src.modules.draft", "src.modules.draft.**"]

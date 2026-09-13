@@ -46,17 +46,19 @@ evals:
 evals_baseline:
 	cp src/modules/draft/evals/report.json src/modules/draft/evals/baseline.json
 
-## Check lint/format/types without mutating files (CI)
+## Check lint/format/types/import-architecture without mutating files (CI)
 lint_check:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run pyright
+	uv run lint-imports
 
-## Apply lint/format fixes and check types (local dev)
+## Apply lint/format fixes and check types + import architecture (local dev)
 lint:
 	uv run ruff format .
 	uv run ruff check --fix .
 	uv run pyright
+	uv run lint-imports
 
 ## Remove caches, venv, and build artefacts
 clean:

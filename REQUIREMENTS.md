@@ -235,7 +235,7 @@ Public domain dedication is deliberately **not** included in v1. It has jurisdic
 
 Modular by feature, mirroring the sibling project `smart-novel-beatrice`: one directory per feature under `src/modules/`, self-contained (routes, agent, types, prompts, evals, and their `*__test.py` unit tests all colocated). Cross-cutting concerns (config, the canonical registry) live outside `modules/`, the same way `beatrice` keeps `src/utils/` outside its `src/modules/`. End-to-end/integration tests still live in a top-level `tests/` directory — the same split used in `smart-novel-beatrice`. See §4.11 for what belongs in which, and `.github/CONTRIBUTING.md` for the full rationale.
 
-Every package has an `__init__.py` **barrel** that re-exports its public API, matching `smart-novel-beatrice`'s `src/utils/__init__.py`/`src/modules/*/__init__.py` pattern — callers write `from src.utils import Settings, get_settings`, never `from src.utils.config import Settings`. Unlike `beatrice` (where this is an unenforced convention), `fithara` enforces it via `ruff`'s `flake8-tidy-imports` banned-api rule (`TID251`); see `.github/CONTRIBUTING.md`'s Design & Code Philosophy §15 for the exact mechanism and what to add when a new barrel package is introduced.
+Every package has an `__init__.py` **barrel** that re-exports its public API, matching `smart-novel-beatrice`'s `src/utils/__init__.py`/`src/modules/*/__init__.py` pattern — callers write `from src.utils import Settings, get_settings`, never `from src.utils.config import Settings`. Unlike `beatrice` (where this is an unenforced convention), `fithara` enforces it via [`import-linter`](https://import-linter.readthedocs.io/) `protected` contracts (`pyproject.toml`'s `[tool.importlinter]`, checked by `make lint_check`); see `.github/CONTRIBUTING.md`'s Design & Code Philosophy §15 for the exact mechanism and what to add when a new barrel package is introduced.
 
 ```
 Makefile                      # make help / init / start_dev / test / schema / lint / clean — see §4.13
@@ -1009,8 +1009,8 @@ Required targets (adapt names/bodies to this service, but keep the shape):
 - **`test`** — runs unit tests (`uv run pytest src/ -v` or equivalent), with start/end timestamps logged the way `smart-novel-beatrice` does.
 - **`integration_test`** — runs integration tests against `POST /v1/draft` and the license endpoints (mocked LLM), separate from unit tests per §4.11.
 - **`schema`** — **required** (see below): exports the OpenAPI schema to `docs/openapi.json`.
-- **`lint_check`** — runs `ruff check`, type checking (`pyright`/`mypy`), and any project-specific static checks (e.g. a check that no endpoint performs disk writes, mirroring `check_wire_contract_test_coverage.py`'s role in the sibling project) without mutating files. Used in CI.
-- **`lint`** — applies `ruff format`, `ruff check --fix`, and type checking, mutating files. Used locally.
+- **`lint_check`** — runs `ruff check`, type checking (`pyright`/`mypy`), `lint-imports` (barrel-package import architecture, §4.2), and any project-specific static checks (e.g. a check that no endpoint performs disk writes, mirroring `check_wire_contract_test_coverage.py`'s role in the sibling project) without mutating files. Used in CI.
+- **`lint`** — applies `ruff format`, `ruff check --fix`, type checking, and `lint-imports`, mutating files where applicable. Used locally.
 - **`clean`** — removes `.venv`, caches, build artefacts (`__pycache__`, `.pytest_cache`, `.ruff_cache`, coverage files, etc.).
 
 ### The `schema` target (required)
