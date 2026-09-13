@@ -46,7 +46,7 @@ class RateLimiter:
 
 @lru_cache(maxsize=1)
 def get_rate_limiter() -> RateLimiter:
-    """The process-wide limiter, built from `Settings.rate_limit`. Overridable in tests via `app.dependency_overrides`."""
+    """The process-wide limiter, built from `Settings.rate_limit`."""
 
     return RateLimiter(per_minute=get_settings().rate_limit.per_minute)
 

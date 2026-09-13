@@ -21,6 +21,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Fithara", lifespan=lifespan)
+
     app.include_router(licenses_router)
     app.include_router(draft_router)
 

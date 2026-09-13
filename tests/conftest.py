@@ -7,8 +7,9 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from src.main import create_app
+from src.modules.draft import get_conversation_limits
 from src.registry import get_registry, load_registry
-from src.utils import RateLimiter, get_rate_limiter
+from src.utils import Conversation, RateLimiter, get_rate_limiter
 
 
 REAL_SCHEMA = Path(__file__).parent.parent / "src" / "licenses" / "_schema.json"
@@ -61,16 +62,19 @@ def fixture_registry_dir(tmp_path: Path) -> Path:
 @pytest.fixture
 def app(fixture_registry_dir: Path) -> FastAPI:
     """
-    A fresh app per test, with the registry pointed at a fixture directory and
-    rate limiting effectively disabled by default. Draft tests additionally
-    override `get_agent` (see `src.modules.draft.get_agent`) before using `client`.
+    A fresh app per test, with the registry pointed at a fixture directory,
+    rate limiting effectively disabled, and conversation length limits
+    effectively unbounded by default. Draft tests additionally override
+    `get_agent` (see `src.modules.draft.get_agent`) before using `client`.
     """
 
     app = create_app()
     registry = load_registry(fixture_registry_dir)
     permissive_limiter = RateLimiter(per_minute=1_000_000)
+    permissive_limits = Conversation(max_turns=1_000_000, max_message_chars=1_000_000)
     app.dependency_overrides[get_registry] = lambda: registry
     app.dependency_overrides[get_rate_limiter] = lambda: permissive_limiter
+    app.dependency_overrides[get_conversation_limits] = lambda: permissive_limits
     return app
 
 

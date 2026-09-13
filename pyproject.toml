@@ -102,6 +102,8 @@ extend-immutable-calls = ["fastapi.Depends"]
 # Exercises active_licenses_by_order/find_license_or_error, which are intentionally
 # not re-exported from the barrel — they're module-internal, not part of the public API.
 "src/modules/licenses/routes__test.py" = ["TID251"]
+# Exercises enforce_conversation_limits, intentionally not re-exported from the barrel.
+"src/modules/draft/routes__test.py" = ["TID251"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]

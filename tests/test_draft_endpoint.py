@@ -4,8 +4,8 @@ from httpx import AsyncClient
 from pydantic_ai import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from src.modules.draft import build_agent, get_agent
-from src.utils import RateLimiter, get_rate_limiter
+from src.modules.draft import build_agent, get_agent, get_conversation_limits
+from src.utils import Conversation, RateLimiter, get_rate_limiter
 
 
 def _stub_agent(app: FastAPI, payload: dict) -> None:
@@ -108,6 +108,20 @@ async def test_draft_returns_400_for_missing_message(app: FastAPI, client: Async
     _stub_agent(app, CANONICAL_RESPONSE)
 
     response = await client.post("/v1/draft", json={})  # act
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_REQUEST"
+
+
+async def test_draft_returns_400_for_message_over_the_length_limit(
+    app: FastAPI, client: AsyncClient
+) -> None:
+    _stub_agent(app, CANONICAL_RESPONSE)
+    app.dependency_overrides[get_conversation_limits] = lambda: Conversation(
+        max_turns=50, max_message_chars=10
+    )
+
+    response = await client.post("/v1/draft", json={"message": "x" * 11})  # act
 
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "INVALID_REQUEST"

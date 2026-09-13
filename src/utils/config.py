@@ -39,6 +39,19 @@ class RateLimit(BaseModel):
     per_minute: int = Field(default=60, ge=1)
 
 
+class Conversation(BaseModel):
+    """Bounds on client-supplied conversation input, enforced on `POST /v1/draft`."""
+
+    max_turns: int = Field(
+        default=50, ge=1, description="Maximum entries allowed in `conversation`."
+    )
+    max_message_chars: int = Field(
+        default=4_000,
+        ge=1,
+        description="Maximum characters allowed in `message` or any turn's `content`.",
+    )
+
+
 class Settings(BaseSettings):
     """Runtime configuration surface."""
 
@@ -55,6 +68,7 @@ class Settings(BaseSettings):
     llm: Llm = Field(default_factory=Llm)  # pyright: ignore[reportArgumentType]
     registry: Registry = Field(default_factory=Registry)
     rate_limit: RateLimit = Field(default_factory=RateLimit)
+    conversation: Conversation = Field(default_factory=Conversation)
 
 
 @lru_cache(maxsize=1)

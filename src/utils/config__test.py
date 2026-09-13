@@ -36,6 +36,8 @@ def test_settings_defaults_apply_when_absent(monkeypatch) -> None:
     assert settings.registry.path == Path("./src/licenses")
     assert settings.llm.timeout_ms == 30_000
     assert settings.rate_limit.per_minute == 60
+    assert settings.conversation.max_turns == 50
+    assert settings.conversation.max_message_chars == 4_000
 
 
 def test_settings_reads_nested_registry_path_env_var(monkeypatch) -> None:
@@ -86,3 +88,14 @@ def test_settings_reads_rate_limit_nested_env_var(monkeypatch) -> None:
     settings = _settings()  # act
 
     assert settings.rate_limit.per_minute == 5
+
+
+def test_settings_reads_conversation_nested_env_vars(monkeypatch) -> None:
+    _set_required_llm_env(monkeypatch)
+    monkeypatch.setenv("CONVERSATION__MAX_TURNS", "10")
+    monkeypatch.setenv("CONVERSATION__MAX_MESSAGE_CHARS", "500")
+
+    settings = _settings()  # act
+
+    assert settings.conversation.max_turns == 10
+    assert settings.conversation.max_message_chars == 500
