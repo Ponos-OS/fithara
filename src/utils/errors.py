@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal
 
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.utils.api_model import CamelModel
 
@@ -30,9 +30,16 @@ _STATUS_BY_CODE: dict[ErrorCode, int] = {
 
 
 class ErrorDetail(CamelModel):
+    """The `error` object every error response wraps."""
+
     code: ErrorCode
-    message: str
-    request_id: str | None = None
+    message: str = Field(
+        description="Human-readable detail. Not guaranteed to stay the same across versions."
+    )
+    request_id: str | None = Field(
+        default=None,
+        description="Correlation id for this request, when one was assigned. May be null.",
+    )
 
 
 class ErrorResponse(BaseModel):

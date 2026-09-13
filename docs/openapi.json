@@ -114,7 +114,8 @@
           },
           "message": {
             "type": "string",
-            "title": "Message"
+            "title": "Message",
+            "description": "Human-readable detail. Not guaranteed to stay the same across versions."
           },
           "requestId": {
             "anyOf": [
@@ -125,7 +126,8 @@
                 "type": "null"
               }
             ],
-            "title": "Requestid"
+            "title": "Requestid",
+            "description": "Correlation id for this request, when one was assigned. May be null."
           }
         },
         "type": "object",
@@ -133,7 +135,8 @@
           "code",
           "message"
         ],
-        "title": "ErrorDetail"
+        "title": "ErrorDetail",
+        "description": "The `error` object every error response wraps."
       },
       "ErrorResponse": {
         "properties": {
@@ -165,7 +168,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "title": "Id"
+            "title": "Id",
+            "description": "Stable machine-readable identifier, e.g. 'CC-BY-NC-4.0'."
           },
           "name": {
             "type": "string",
@@ -185,7 +189,8 @@
           },
           "officialUrl": {
             "type": "string",
-            "title": "Officialurl"
+            "title": "Officialurl",
+            "description": "Link to the authoritative license text."
           },
           "summary": {
             "type": "string",
@@ -214,7 +219,8 @@
           },
           "body": {
             "type": "string",
-            "title": "Body"
+            "title": "Body",
+            "description": "The verbatim canonical license text, as Markdown. Never paraphrased."
           }
         },
         "type": "object",
@@ -232,7 +238,29 @@
           "body"
         ],
         "title": "LicenseDetail",
-        "description": "Canonical license metadata plus its verbatim body."
+        "description": "Canonical license metadata plus its verbatim body.",
+        "examples": [
+          {
+            "body": "# Creative Commons ...",
+            "category": "creative_commons",
+            "conditions": [
+              "attribution"
+            ],
+            "id": "CC-BY-NC-4.0",
+            "limitations": [
+              "non_commercial"
+            ],
+            "name": "Creative Commons Attribution-NonCommercial 4.0 International",
+            "officialUrl": "https://creativecommons.org/licenses/by-nc/4.0/legalcode",
+            "permissions": [
+              "share",
+              "adapt"
+            ],
+            "shortName": "CC BY-NC 4.0",
+            "summary": "Allows others to share and adapt the work for non-commercial purposes, provided they give appropriate credit.",
+            "version": "4.0"
+          }
+        ]
       },
       "LicenseListResponse": {
         "properties": {
@@ -248,13 +276,15 @@
         "required": [
           "licenses"
         ],
-        "title": "LicenseListResponse"
+        "title": "LicenseListResponse",
+        "description": "Response body for `GET /v1/licenses`."
       },
       "LicenseSummary": {
         "properties": {
           "id": {
             "type": "string",
-            "title": "Id"
+            "title": "Id",
+            "description": "Stable machine-readable identifier, e.g. 'CC-BY-NC-4.0'."
           },
           "name": {
             "type": "string",
@@ -274,7 +304,8 @@
           },
           "officialUrl": {
             "type": "string",
-            "title": "Officialurl"
+            "title": "Officialurl",
+            "description": "Link to the authoritative license text."
           },
           "summary": {
             "type": "string",
@@ -316,7 +347,28 @@
           "conditions"
         ],
         "title": "LicenseSummary",
-        "description": "Canonical license metadata, without the (large) body text."
+        "description": "Canonical license metadata, without the (large) body text.",
+        "examples": [
+          {
+            "category": "creative_commons",
+            "conditions": [
+              "attribution"
+            ],
+            "id": "CC-BY-NC-4.0",
+            "limitations": [
+              "non_commercial"
+            ],
+            "name": "Creative Commons Attribution-NonCommercial 4.0 International",
+            "officialUrl": "https://creativecommons.org/licenses/by-nc/4.0/legalcode",
+            "permissions": [
+              "share",
+              "adapt"
+            ],
+            "shortName": "CC BY-NC 4.0",
+            "summary": "Allows others to share and adapt the work for non-commercial purposes, provided they give appropriate credit.",
+            "version": "4.0"
+          }
+        ]
       },
       "ValidationError": {
         "properties": {
