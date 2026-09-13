@@ -13,7 +13,7 @@ from jsonschema import (
 from pydantic import ValidationError
 
 from src.registry.models import CanonicalLicense
-from src.utils.config import get_settings
+from src.utils import get_settings
 
 
 class RegistryLoadError(Exception):

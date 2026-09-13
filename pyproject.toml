@@ -51,14 +51,35 @@ select = [
     "SIM",      # simplify
     "N",        # naming
     "RUF",      # ruff-specific
+    "TID",      # flake8-tidy-imports — enforces the barrel-import convention below
 ]
 ignore = [
     "E501",     # line-length handled by formatter
 ]
 
+# Packages with a barrel `__init__.py` (src/utils, src/registry, src/modules/licenses, ...)
+# must be imported as `from src.utils import X`, never by reaching into the submodule that
+# actually defines X. Add a "<package>.<submodule>" entry here whenever a new barrel package
+# is introduced. Per-file-ignores below list the deliberate exceptions: the barrel file itself
+# (which has to import from its own submodules) and unit tests exercising a symbol that is
+# intentionally private (not re-exported).
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"src.utils.config".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
+"src.utils.errors".msg = "Import from the src.utils barrel instead: `from src.utils import ...`."
+"src.registry.loader".msg = "Import from the src.registry barrel instead: `from src.registry import ...`."
+"src.registry.models".msg = "Import from the src.registry barrel instead: `from src.registry import ...`."
+"src.modules.licenses.routes".msg = "Import from the src.modules.licenses barrel instead: `from src.modules.licenses import ...`."
+
 [tool.ruff.lint.per-file-ignores]
 "**/*__test.py" = ["S101"]
 "tests/**/*.py" = ["S101"]
+"src/utils/__init__.py" = ["TID251"]
+"src/registry/__init__.py" = ["TID251"]
+"src/registry/loader.py" = ["TID251"]  # sibling import of its own package's models.py
+"src/modules/licenses/__init__.py" = ["TID251"]
+# Exercises active_licenses_by_order/find_license_or_error, which are intentionally
+# not re-exported from the barrel — they're module-internal, not part of the public API.
+"src/modules/licenses/routes__test.py" = ["TID251"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]

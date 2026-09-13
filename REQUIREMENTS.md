@@ -235,23 +235,30 @@ Public domain dedication is deliberately **not** included in v1. It has jurisdic
 
 Modular by feature, mirroring the sibling project `smart-novel-beatrice`: one directory per feature under `src/modules/`, self-contained (routes, agent, types, prompts, evals, and their `*__test.py` unit tests all colocated). Cross-cutting concerns (config, the canonical registry) live outside `modules/`, the same way `beatrice` keeps `src/utils/` outside its `src/modules/`. End-to-end/integration tests still live in a top-level `tests/` directory — the same split used in `smart-novel-beatrice`. See §4.11 for what belongs in which, and `.github/CONTRIBUTING.md` for the full rationale.
 
+Every package has an `__init__.py` **barrel** that re-exports its public API, matching `smart-novel-beatrice`'s `src/utils/__init__.py`/`src/modules/*/__init__.py` pattern — callers write `from src.utils import Settings, get_settings`, never `from src.utils.config import Settings`. Unlike `beatrice` (where this is an unenforced convention), `fithara` enforces it via `ruff`'s `flake8-tidy-imports` banned-api rule (`TID251`); see `.github/CONTRIBUTING.md`'s Design & Code Philosophy §15 for the exact mechanism and what to add when a new barrel package is introduced.
+
 ```
 Makefile                      # make help / init / start_dev / test / schema / lint / clean — see §4.13
 pyproject.toml                # uv-managed dependencies + project metadata
 uv.lock                       # committed lockfile
 Dockerfile                    # backend image (Step B8 / Part 5)
 src/
+  __init__.py                 # package marker, no exports
   main.py                     # FastAPI app factory — only place routers are wired together
   utils/                      # cross-cutting concerns shared by every module
+    __init__.py               # barrel: Settings, get_settings, ErrorResponse, api_error, ...
     config.py                 # Settings / get_settings() — see §4.8
     config__test.py           # unit tests for Settings validation and defaults
     errors.py                 # §4.10 error envelope (ErrorResponse) + api_error() helper
   registry/                   # canonical license registry — shared by both modules below
+    __init__.py               # barrel: CanonicalLicense, load_registry, get_registry, RegistryLoadError
     loader.py                 # loads markdown + frontmatter from licenses/
     loader__test.py           # unit tests: valid/invalid files, unique IDs
     models.py                 # CanonicalLicense Pydantic model
   modules/
+    __init__.py                # no exports — just a namespace for feature packages
     licenses/
+      __init__.py             # barrel: router, LicenseSummary, LicenseDetail, LicenseListResponse
       routes.py               # GET /v1/licenses, GET /v1/licenses/{id}
       routes__test.py         # unit tests against a fixture registry, no HTTP server
     draft/

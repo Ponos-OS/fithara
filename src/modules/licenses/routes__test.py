@@ -5,8 +5,8 @@ from src.modules.licenses.routes import (
     active_licenses_by_order,
     find_license_or_error,
 )
-from src.registry.models import CanonicalLicense
-from src.utils.errors import ErrorResponse
+from src.registry import CanonicalLicense
+from src.utils import ErrorResponse
 
 
 def _license(**overrides) -> CanonicalLicense:

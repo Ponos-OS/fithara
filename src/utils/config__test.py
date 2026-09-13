@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.utils.config import Settings
+from src.utils import Settings
 
 
 def test_settings_defaults_apply_when_absent(monkeypatch) -> None:

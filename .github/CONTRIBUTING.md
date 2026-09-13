@@ -17,20 +17,27 @@ No database, queue, or object store — the service is stateless (§0.4/§4.7 of
 
 Modular by feature, mirroring the sibling project `smart-novel-beatrice`: one directory per feature under `modules/`, self-contained (routes, agent, types, prompts, evals, tests colocated). Cross-cutting concerns (config, the canonical license registry) live outside `modules/`, the same way `beatrice` keeps `src/utils/` outside its `src/modules/`.
 
+Every package (`src/`, `src/utils/`, `src/registry/`, `src/modules/licenses/`, ...) has an `__init__.py` that is a **barrel**: it re-exports that package's public API and nothing else, so callers write `from src.utils import Settings, get_settings` instead of reaching into the submodule that happens to define them (`from src.utils.config import Settings`). This is enforced, not just convention — see the `TID251`/banned-api note in the Design & Code Philosophy section below. A symbol stays out of the barrel (and out of `__all__`) when it's genuinely internal to the package, e.g. `active_licenses_by_order`/`find_license_or_error` in `src/modules/licenses/routes.py`, which only that module's own `routes__test.py` should reach for directly.
+
 ```
 fithara/
 ├── src/
+│   ├── __init__.py                    # Package marker; no exports (this is the app, not a library)
 │   ├── main.py                        # FastAPI app factory — only place routers are wired together (no side effects on import, see `make schema`)
 │   ├── utils/                         # Cross-cutting concerns shared by every module — never LLM/business logic
+│   │   ├── __init__.py                # Barrel: re-exports Settings, get_settings, ErrorResponse, api_error, ...
 │   │   ├── config.py                  # Settings / get_settings() — pydantic-settings (§4.8)
 │   │   ├── config__test.py            # Unit tests: required fields, defaults, nested __ env vars
 │   │   └── errors.py                  # §4.10 error envelope (ErrorResponse) + api_error() helper
 │   ├── registry/                      # Canonical license registry (§3) — shared by both modules below
+│   │   ├── __init__.py                # Barrel: re-exports CanonicalLicense, load_registry, get_registry, RegistryLoadError
 │   │   ├── loader.py                  # Parses Markdown + YAML frontmatter from licenses/
 │   │   ├── loader__test.py            # Unit tests: valid/invalid files, unique IDs, boot-time failure
 │   │   └── models.py                  # CanonicalLicense Pydantic model
 │   ├── modules/
+│   │   ├── __init__.py                # No exports — just a namespace for feature packages, mirrors beatrice
 │   │   ├── licenses/                  # Feature: browsing the canonical registry over HTTP
+│   │   │   ├── __init__.py            # Barrel: re-exports router, LicenseSummary, LicenseDetail, LicenseListResponse
 │   │   │   ├── routes.py              # GET /v1/licenses, GET /v1/licenses/{id} (404/410 semantics, §4.10)
 │   │   │   └── routes__test.py        # Unit tests against a fixture registry, no HTTP server
 │   │   └── draft/                     # Feature: the conversational drafting endpoint
@@ -133,3 +140,6 @@ Prompts live at `src/modules/<module>/prompts/v1.md` (or `v1.jinja2` if a module
 12. This service is an application, not a distributable library, and `src/` isn't a package meant for `uv`'s build backend to install — set `[tool.uv] package = false` in `pyproject.toml` so `uv sync` doesn't try to build/install the project itself as a package (which fails without a matching package directory for the build backend to find).
 13. A nested settings group under `Settings` (e.g. `Registry`, `Llm`) must be a plain `pydantic.BaseModel`, not `BaseSettings`. A nested `BaseSettings` is itself an independent settings source: it reads the *whole* process environment case-insensitively, so a field like `Registry.path` silently binds to the ubiquitous `PATH` env var instead of only the `REGISTRY__PATH` slice `Settings.env_nested_delimiter` carves out for it. Only the outermost `Settings` class should subclass `BaseSettings`.
 14. FastAPI's default handler for `HTTPException` wraps whatever you pass as `detail` inside `{"detail": ...}` — so raising `HTTPException(status_code=404, detail={"error": {...}})` (the §4.10 error envelope) actually serves `{"detail": {"error": {...}}}`, not the documented flat `{"error": {...}}` shape. Register an app-level `@app.exception_handler(HTTPException)` that returns `JSONResponse(status_code=exc.status_code, content=exc.detail)` so `exc.detail` is served verbatim as the response body.
+15. **Barrel imports are enforced, not just conventional.** Every package's `__init__.py` re-exports its public API (see the project-structure tree above); importing a symbol from the submodule that actually defines it instead of the package barrel (e.g. `from src.utils.config import Settings` instead of `from src.utils import Settings`) is a lint error, not a style nit. This is `ruff`'s `flake8-tidy-imports` banned-api rule (`TID251`), configured in `pyproject.toml`'s `[tool.ruff.lint.flake8-tidy-imports.banned-api]` table — one `"pkg.submodule".msg = "..."` entry per submodule that a barrel exists for. Two things to remember when adding a new barrel package:
+    - Add the new `"pkg.submodule"` ban entry, and add a `per-file-ignores` entry for the new `__init__.py` itself (it has to import from its own submodules) and for `<submodule>.py` files that import a *sibling* submodule within the same package (e.g. `src/registry/loader.py` importing `src/registry/models.py`).
+    - A symbol that's genuinely private to a submodule (not part of the package's public API) is not exported from the barrel, and a test that needs it imports the submodule directly — add that test file to `per-file-ignores` too, with a one-line comment on *why* it's an exception (see `src/modules/licenses/routes__test.py`'s entry).

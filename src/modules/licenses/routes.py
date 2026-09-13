@@ -4,9 +4,8 @@ from fastapi import APIRouter, Depends
 from pydantic import AliasGenerator, BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from src.registry.loader import get_registry
-from src.registry.models import CanonicalLicense
-from src.utils.errors import ErrorResponse, api_error
+from src.registry import CanonicalLicense, get_registry
+from src.utils import ErrorResponse, api_error
 
 
 router = APIRouter(tags=["licenses"])

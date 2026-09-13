@@ -6,7 +6,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.main import create_app
-from src.registry.loader import get_registry, load_registry
+from src.registry import get_registry, load_registry
 
 
 REAL_SCHEMA = Path(__file__).parent.parent / "src" / "licenses" / "_schema.json"

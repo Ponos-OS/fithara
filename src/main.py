@@ -6,8 +6,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from src.modules.licenses.routes import router as licenses_router
-from src.registry.loader import get_registry
+from src.modules.licenses import router as licenses_router
+from src.registry import get_registry
 
 
 @asynccontextmanager
