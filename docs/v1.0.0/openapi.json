@@ -3,7 +3,7 @@
   "info": {
     "title": "Fithara",
     "description": "[Download openapi.json](./openapi.json) \u2014 the schema for this version.",
-    "version": "0.1.0"
+    "version": "1.0.0"
   },
   "paths": {
     "/v1/licenses": {
