@@ -1,6 +1,6 @@
 [project]
 name = "fithara"
-version = "0.1.0"
+version = "1.0.0"
 description = "License drafting assistant service"
 readme = "README.md"
 authors = [
