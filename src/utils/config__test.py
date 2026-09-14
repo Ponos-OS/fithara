@@ -1,3 +1,4 @@
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -130,7 +131,9 @@ def test_settings_reads_otel_nested_env_vars(monkeypatch) -> None:
 
 def test_settings_app_version_reads_pyproject_toml(monkeypatch) -> None:
     _set_required_llm_env(monkeypatch)
+    pyproject = Path(__file__).resolve().parent.parent.parent / "pyproject.toml"
+    expected_version = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
 
     settings = _settings()  # act
 
-    assert settings.app_version == "0.1.0"
+    assert settings.app_version == expected_version
