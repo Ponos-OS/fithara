@@ -46,6 +46,10 @@ evals:
 evals_baseline:
 	cp src/modules/draft/evals/report.json src/modules/draft/evals/baseline.json
 
+## Run evals against a real, Testcontainers-managed Ollama (nightly CI; needs Docker + the `evals` dep group)
+evals_nightly:
+	uv run --group evals python local-setup/ollama/run_nightly_evals.py
+
 ## Check lint/format/types/import-architecture without mutating files (CI)
 lint_check:
 	uv run ruff check .
@@ -65,4 +69,4 @@ clean:
 	rm -rf .venv .pytest_cache .ruff_cache .mypy_cache .pyright build dist *.egg-info
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
 
-.PHONY: help init start_dev start test integration_test schema evals evals_baseline lint_check lint clean
+.PHONY: help init start_dev start test integration_test schema evals evals_baseline evals_nightly lint_check lint clean

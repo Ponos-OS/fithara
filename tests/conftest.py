@@ -1,42 +1,21 @@
-import os
 import shutil
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 
-import docker
-import docker.errors
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from pydantic_ai import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai import ModelHTTPError, ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from testcontainers.community.ollama import OllamaContainer
-from testcontainers.core.image import DockerImage
 
 from src.main import create_app
 from src.modules.draft import build_agent, get_agent, get_conversation_limits
 from src.registry import get_registry, load_registry
-from src.utils import Conversation, RateLimiter, get_rate_limiter, get_settings
+from src.utils import Conversation, RateLimiter, get_rate_limiter
 
-
-# Tests hit a real local Ollama server.
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-OLLAMA_MODEL = "llama3.2:1b"
-OLLAMA_IMAGE = "fithara-ollama:latest"
-OLLAMA_CONTEXT = PROJECT_ROOT / "local-setup" / "ollama"
 
 REAL_SCHEMA = Path(__file__).parent.parent / "src" / "licenses" / "_schema.json"
 FIXTURE_ACTIVE_BODY = "# Fixture Active License\n\nFixture license body for FIXTURE-ACTIVE."
-
-# Mirrors src.modules.draft.agent's private `_FALLBACK_RESPONSE.assistant_message` — that
-# module is a protected barrel internal (see pyproject.toml's import-linter contracts), so
-# it can't be imported here. `run_draft_agent` returns this verbatim whenever the agent
-# call fails (including a connection failure to Ollama), so a real-model test asserting
-# the response isn't this sentinel is actually asserting "a real LLM call happened".
-FALLBACK_ASSISTANT_MESSAGE = (
-    "Sorry, I wasn't able to produce a reliable answer for that. "
-    "Please try rephrasing your request."
-)
 
 _LICENSE_TEMPLATE = """---
 id: {id}
@@ -122,40 +101,19 @@ def stub_agent() -> Callable[[FastAPI, dict], None]:
     return _stub
 
 
-def _ensure_ollama_image_exists() -> None:
-    client = docker.from_env()
+@pytest.fixture
+def failing_agent() -> Callable[[FastAPI], None]:
+    """
+    Stub the agent to fail as an upstream LLM provider would (a 500, a timeout,
+    a dropped connection) rather than return structured output, so tests can
+    assert on `run_draft_agent`'s own fallback handling instead of on anything
+    an LLM actually said.
+    """
 
-    try:
-        client.images.get(OLLAMA_IMAGE)
-        return
-    except docker.errors.ImageNotFound:
-        pass
+    def _stub(app: FastAPI) -> None:
+        def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            raise ModelHTTPError(status_code=500, model_name="stub", body="upstream error")
 
-    image = DockerImage(
-        path=str(OLLAMA_CONTEXT),
-        tag=OLLAMA_IMAGE,
-        buildargs={"OLLAMA_MODEL": OLLAMA_MODEL},
-    )
-    image.build()
+        app.dependency_overrides[get_agent] = lambda: build_agent(FunctionModel(respond))
 
-
-@pytest.fixture(scope="session")
-def ollama_container() -> Iterator[OllamaContainer]:
-    _ensure_ollama_image_exists()
-
-    with OllamaContainer(image=OLLAMA_IMAGE) as container:
-        yield container
-
-
-@pytest.fixture(scope="session")
-def ollama_base_url(ollama_container: OllamaContainer) -> str:
-    return f"{ollama_container.get_endpoint()}/v1"
-
-
-@pytest.fixture(scope="session")
-def ollama_env(ollama_base_url: str) -> None:
-    os.environ["LLM__PROVIDER"] = "ollama"
-    os.environ["LLM__MODEL"] = OLLAMA_MODEL
-    os.environ["LLM__BASE_URL"] = ollama_base_url
-    os.environ["LLM__API_KEY"] = "unused-local-ollama"
-    get_settings.cache_clear()
+    return _stub

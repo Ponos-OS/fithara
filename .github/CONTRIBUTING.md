@@ -113,6 +113,7 @@ Three tiers. Each answers a different question. Put each new test in the tier th
      - Prompt edits that unintentionally degrade output quality.
      - Model changes (swapping providers/models) that shift behaviour.
      - Rule violations that unit tests can't express because they depend on natural-language output.
+   - `make evals` runs against whatever provider `.env`/the environment already configures — handy locally, but it means a developer without an LLM key configured can't run it, and CI never runs it. `make evals_nightly` runs the exact same dataset against a real, disposable Ollama server (Testcontainers, image built from `local-setup/ollama/`) so the dataset is exercised against a live model on a schedule (`.github/workflows/nightly-evals.yml`) without needing a paid provider key. It needs Docker and the `evals` dependency group (`uv sync --group evals`); it writes the same `report.json`, uploaded as a workflow artifact.
 
 ### When `make evals` Fail
 

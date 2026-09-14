@@ -634,6 +634,8 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
+]
+evals = [
     { name = "testcontainers" },
 ]
 
@@ -664,8 +666,8 @@ dev = [
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "ruff", specifier = ">=0.8" },
-    { name = "testcontainers", specifier = ">=4.8" },
 ]
+evals = [{ name = "testcontainers", specifier = ">=4.8" }]
 
 [[package]]
 name = "flake8"

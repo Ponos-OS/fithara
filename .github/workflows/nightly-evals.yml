@@ -1,0 +1,42 @@
+name: Nightly evals
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  evals_against_ollama:
+    name: Run pydantic-evals dataset against Testcontainers Ollama
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install Python deps
+        run: uv sync --group evals
+
+      # Builds+starts a real Ollama server via Testcontainers (local-setup/ollama), points
+      # LLM__* at it, then runs src.modules.draft.evals.run — the same pydantic-evals
+      # dataset `make evals` runs manually, but against a live model instead of whatever a
+      # developer's .env happens to configure. Never gates commit-time CI: a live LLM is
+      # non-deterministic by nature (see docs/testing-llm-integrated-apps.md), this job
+      # exists to catch prompt/model drift on a schedule, not to block every push.
+      - name: Run evals against Testcontainers-managed Ollama
+        run: make evals_nightly
+
+      - name: Upload evals report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: draft-evals-report
+          path: src/modules/draft/evals/report.json
+          retention-days: 30

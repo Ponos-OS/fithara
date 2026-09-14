@@ -33,6 +33,10 @@ dev = [
     "pre-commit>=4.0",
     "flake8-aaa>=0.17.2",
     "import-linter>=2.15",
+]
+# Only needed to run `make evals_nightly` (real Ollama via Testcontainers). Kept out of
+# `dev` so a plain `uv sync` for day-to-day work doesn't pull in docker/testcontainers.
+evals = [
     "testcontainers>=4.8",
 ]
 
