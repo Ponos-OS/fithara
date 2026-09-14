@@ -1,0 +1,743 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Fithara",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/licenses": {
+      "get": {
+        "tags": [
+          "licenses"
+        ],
+        "summary": "List Licenses",
+        "description": "Returns only currently-offered licenses, ordered for display. A retired license is omitted here but still resolves via `GET /v1/licenses/{id}` (`410`, not `404`).",
+        "operationId": "list_licenses_v1_licenses_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/licenses/{license_id}": {
+      "get": {
+        "tags": [
+          "licenses"
+        ],
+        "summary": "Get License",
+        "description": "Returns one license's full metadata and verbatim body. `404` means this id was never registered; `410` means it was registered but is retired \u2014 see that response's own description for what retired means for existing drafts.",
+        "operationId": "get_license_v1_licenses__license_id__get",
+        "parameters": [
+          {
+            "name": "license_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "License Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown license id \u2014 this service has never registered it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "The license id is registered but retired: it no longer appears in `GET /v1/licenses` and cannot be selected for new drafts, but existing drafts referencing it still resolve via `POST /v1/draft`.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "LICENSE_INACTIVE",
+                    "message": "License is no longer offered: CC-BY-4.0"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/draft": {
+      "post": {
+        "tags": [
+          "draft"
+        ],
+        "summary": "Draft",
+        "operationId": "draft_v1_draft_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation, e.g. an empty `message`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this client within the configured rate-limit window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ConversationTurn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "examples": [
+              "I want a license that lets people remix my novel but not sell it."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ConversationTurn",
+        "description": "One message in the conversation history, supplied by the client."
+      },
+      "Draft": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "examples": [
+              "Creative Commons Attribution-NonCommercial 4.0 International"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "The draft's license text, as Markdown.",
+            "examples": [
+              "# Creative Commons Attribution-NonCommercial 4.0 International\n\n..."
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/DraftSource"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "text",
+          "source"
+        ],
+        "title": "Draft",
+        "description": "The license text a user is currently working on."
+      },
+      "DraftRequest": {
+        "properties": {
+          "conversation": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationTurn"
+            },
+            "type": "array",
+            "title": "Conversation",
+            "description": "Full conversation history, client-supplied. May be empty on the first turn."
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Draft"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current draft state, client-supplied. May be null on the first turn."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message",
+            "description": "The new user message. Required, non-empty.",
+            "examples": [
+              "what does section 3 mean?"
+            ]
+          },
+          "preferences": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Preferences"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional hints. Not hard constraints."
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "DraftRequest",
+        "description": "A user's message plus everything the client currently knows: conversation so far and current draft."
+      },
+      "DraftResponse": {
+        "properties": {
+          "assistantMessage": {
+            "type": "string",
+            "title": "Assistantmessage",
+            "examples": [
+              "Section 3 covers the attribution requirement..."
+            ]
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Draft"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current draft state after this turn. Null if no draft exists yet."
+          },
+          "draftChanged": {
+            "type": "boolean",
+            "title": "Draftchanged",
+            "description": "True iff the assistant created or modified the draft this turn."
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations",
+            "description": "Canonical license IDs the assistant suggests.",
+            "examples": [
+              [
+                "CC-BY-NC-4.0",
+                "CC-BY-NC-SA-4.0"
+              ]
+            ]
+          },
+          "disclaimers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Disclaimers",
+            "description": "Always non-empty. The client must render these.",
+            "examples": [
+              [
+                "This is not legal advice. Consult a qualified lawyer before relying on this draft."
+              ]
+            ]
+          },
+          "isReadyToFinalize": {
+            "type": "boolean",
+            "title": "Isreadytofinalize",
+            "description": "The assistant's opinion on readiness. The client decides whether to act on it."
+          }
+        },
+        "type": "object",
+        "required": [
+          "assistantMessage",
+          "draft",
+          "draftChanged",
+          "recommendations",
+          "disclaimers",
+          "isReadyToFinalize"
+        ],
+        "title": "DraftResponse",
+        "description": "The assistant's reply: what it said, the (possibly updated) draft, and its recommendations."
+      },
+      "DraftSource": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "canonical",
+              "forked",
+              "custom"
+            ],
+            "title": "Type"
+          },
+          "canonicalId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonicalid",
+            "description": "The canonical license this draft is based on. Set when type is 'canonical' or 'forked'; always null for 'custom'.",
+            "examples": [
+              "CC-BY-NC-4.0"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "DraftSource",
+        "description": "Where a draft's text came from: an untouched canonical license, a fork of one, or fully custom."
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "INVALID_REQUEST",
+              "UNKNOWN_LICENSE",
+              "LICENSE_INACTIVE",
+              "RATE_LIMITED",
+              "LLM_UNAVAILABLE",
+              "LLM_INVALID_OUTPUT",
+              "INTERNAL"
+            ],
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable detail. Not guaranteed to stay the same across versions."
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestid",
+            "description": "Correlation id for this request, when one was assigned. May be null."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail",
+        "description": "The `error` object every error response wraps."
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "description": "Wire shape for every error response this service returns."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LicenseDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Stable machine-readable identifier.",
+            "examples": [
+              "CC-BY-NC-4.0"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "examples": [
+              "Creative Commons Attribution-NonCommercial 4.0 International"
+            ]
+          },
+          "shortName": {
+            "type": "string",
+            "title": "Shortname",
+            "examples": [
+              "CC BY-NC 4.0"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "examples": [
+              "4.0"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "examples": [
+              "creative_commons"
+            ]
+          },
+          "officialUrl": {
+            "type": "string",
+            "title": "Officialurl",
+            "description": "Link to the authoritative license text.",
+            "examples": [
+              "https://creativecommons.org/licenses/by-nc/4.0/legalcode"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "examples": [
+              "Allows others to share and adapt the work for non-commercial purposes, provided they give appropriate credit."
+            ]
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions",
+            "examples": [
+              [
+                "share",
+                "adapt"
+              ]
+            ]
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations",
+            "examples": [
+              [
+                "non_commercial"
+              ]
+            ]
+          },
+          "conditions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conditions",
+            "examples": [
+              [
+                "attribution"
+              ]
+            ]
+          },
+          "body": {
+            "type": "string",
+            "title": "Body",
+            "description": "The verbatim canonical license text, as Markdown. Never paraphrased.",
+            "examples": [
+              "# Creative Commons Attribution-NonCommercial 4.0 International\n\n..."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "version",
+          "category",
+          "officialUrl",
+          "summary",
+          "permissions",
+          "limitations",
+          "conditions",
+          "body"
+        ],
+        "title": "LicenseDetail",
+        "description": "Canonical license metadata plus its verbatim body."
+      },
+      "LicenseListResponse": {
+        "properties": {
+          "licenses": {
+            "items": {
+              "$ref": "#/components/schemas/LicenseSummary"
+            },
+            "type": "array",
+            "title": "Licenses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "licenses"
+        ],
+        "title": "LicenseListResponse",
+        "description": "The set of licenses currently offered to users.\n\nA retired license is never listed here, but its id still resolves via\n`GET /v1/licenses/{id}` (as a `410`, not a `404`) and via `POST /v1/draft`\nfor drafts that already reference it."
+      },
+      "LicenseSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Stable machine-readable identifier.",
+            "examples": [
+              "CC-BY-NC-4.0"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "examples": [
+              "Creative Commons Attribution-NonCommercial 4.0 International"
+            ]
+          },
+          "shortName": {
+            "type": "string",
+            "title": "Shortname",
+            "examples": [
+              "CC BY-NC 4.0"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "examples": [
+              "4.0"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "examples": [
+              "creative_commons"
+            ]
+          },
+          "officialUrl": {
+            "type": "string",
+            "title": "Officialurl",
+            "description": "Link to the authoritative license text.",
+            "examples": [
+              "https://creativecommons.org/licenses/by-nc/4.0/legalcode"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "examples": [
+              "Allows others to share and adapt the work for non-commercial purposes, provided they give appropriate credit."
+            ]
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions",
+            "examples": [
+              [
+                "share",
+                "adapt"
+              ]
+            ]
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations",
+            "examples": [
+              [
+                "non_commercial"
+              ]
+            ]
+          },
+          "conditions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conditions",
+            "examples": [
+              [
+                "attribution"
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "shortName",
+          "version",
+          "category",
+          "officialUrl",
+          "summary",
+          "permissions",
+          "limitations",
+          "conditions"
+        ],
+        "title": "LicenseSummary",
+        "description": "Canonical license metadata, without the (large) body text."
+      },
+      "Preferences": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "A canonical license category to prefer, e.g. 'creative_commons'.",
+            "examples": [
+              "creative_commons"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "Preferences",
+        "description": "Optional hints for the assistant. Never hard constraints."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
