@@ -33,6 +33,7 @@ dev = [
     "pre-commit>=4.0",
     "flake8-aaa>=0.17.2",
     "import-linter>=2.15",
+    "testcontainers>=4.8",
 ]
 
 [tool.pytest.ini_options]

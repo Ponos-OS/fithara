@@ -104,9 +104,10 @@ def get_agent() -> Agent[None, DraftResponse]:
     """
 
     settings = get_settings().llm
-    provider = infer_provider_class(settings.provider)(
-        api_key=settings.api_key  # pyright: ignore[reportCallIssue]
-    )
+    provider_kwargs: dict[str, object] = {"api_key": settings.api_key}
+    if settings.base_url is not None:
+        provider_kwargs["base_url"] = settings.base_url
+    provider = infer_provider_class(settings.provider)(**provider_kwargs)  # pyright: ignore[reportCallIssue]
     model = infer_model(
         f"{settings.provider}:{settings.model}", provider_factory=lambda _: provider
     )

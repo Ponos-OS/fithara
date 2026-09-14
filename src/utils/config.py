@@ -9,6 +9,17 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def read_app_version() -> str:
+    """
+    Read `[project].version` from pyproject.toml.
+    """
+
+    pyproject = Path(__file__).resolve().parent.parent.parent / "pyproject.toml"
+    data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+
+    return data["project"]["version"]
+
+
 class LoggingMode(StrEnum):
     JSON = "JSON"
     PLAIN_TEXT = "PLAIN_TEXT"
@@ -50,10 +61,14 @@ class Llm(BaseModel):
     """LLM provider configuration for the PydanticAI drafting agent."""
 
     provider: str = Field(
-        description="PydanticAI provider identifier, e.g. 'openai' or 'anthropic'."
+        description="PydanticAI provider identifier, e.g. 'openai', 'anthropic', or 'ollama'."
     )
     model: str = Field(description="Model name for the drafting agent, e.g. 'gpt-5.2'.")
     api_key: str = Field(description="Provider API key.")
+    base_url: str | None = Field(
+        default=None,
+        description="Override the provider's default API base URL, e.g. 'http://localhost:11434/v1' for a self-hosted Ollama server.",
+    )
     timeout_ms: int = Field(default=30_000, ge=1_000)
 
 
@@ -116,12 +131,7 @@ class Settings(BaseSettings):
 
     @property
     def app_version(self) -> str:
-        """Read `[project].version` from pyproject.toml at runtime."""
-
-        pyproject = Path(__file__).resolve().parent.parent.parent / "pyproject.toml"
-        data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
-
-        return data["project"]["version"]
+        return read_app_version()
 
 
 @lru_cache(maxsize=1)

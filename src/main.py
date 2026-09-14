@@ -15,6 +15,7 @@ from src.utils import (
     ErrorResponse,
     get_settings,
     instrument_fastapi,
+    read_app_version,
     setup_observability,
 )
 
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Fithara",
         description="[Download openapi.json](./openapi.json) — the schema for this version.",
+        version=read_app_version(),
         lifespan=lifespan,
     )
 

@@ -1,12 +1,18 @@
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
-from tests.conftest import FIXTURE_ACTIVE_BODY
+from tests.conftest import FALLBACK_ASSISTANT_MESSAGE, FIXTURE_ACTIVE_BODY, build_test_app
 
-from src.modules.draft import get_conversation_limits
+from src.modules.draft import DraftResponse, get_conversation_limits
 from src.utils import Conversation, RateLimiter, get_rate_limiter
+
+
+@pytest.fixture
+def app(fixture_registry_dir: Path, ollama_env: None) -> FastAPI:
+    return build_test_app(fixture_registry_dir)
 
 
 CANONICAL_RESPONSE = {
@@ -22,70 +28,51 @@ CANONICAL_RESPONSE = {
     "isReadyToFinalize": False,
 }
 
-FORKED_RESPONSE = {
-    "assistantMessage": "I've adjusted the license; this is now a custom fork.",
-    "draft": {
-        "title": "Custom license (derived from Fixture Active License)",
-        "text": "verbatim body, with the added indie-publisher carve-out",
-        "source": {"type": "forked", "canonicalId": "FIXTURE-ACTIVE"},
-    },
-    "draftChanged": True,
-    "recommendations": [],
-    "disclaimers": ["This is not legal advice.", "This is a modified license."],
-    "isReadyToFinalize": False,
-}
 
-CUSTOM_RESPONSE = {
-    "assistantMessage": "No canonical license fits, here's a custom draft.",
-    "draft": {
-        "title": "Custom Attribution License",
-        "text": "a fully custom license body",
-        "source": {"type": "custom", "canonicalId": None},
-    },
-    "draftChanged": True,
-    "recommendations": [],
-    "disclaimers": ["This is not legal advice."],
-    "isReadyToFinalize": False,
-}
-
-EXPLANATION_RESPONSE = {
-    "assistantMessage": "Section 3 covers the attribution requirement.",
-    "draft": {
-        "title": "Fixture Active License",
-        "text": FIXTURE_ACTIVE_BODY,
-        "source": {"type": "canonical", "canonicalId": "FIXTURE-ACTIVE"},
-    },
-    "draftChanged": False,
-    "recommendations": [],
-    "disclaimers": ["This is not legal advice."],
-    "isReadyToFinalize": False,
-}
-
-
-@pytest.mark.parametrize(
-    "payload",
-    [CANONICAL_RESPONSE, FORKED_RESPONSE, CUSTOM_RESPONSE],
-)
-async def test_draft_returns_schema_valid_response_per_source_type(
-    app: FastAPI, client: AsyncClient, stub_agent: Callable[[FastAPI, dict], None], payload: dict
+async def test_draft_returns_schema_valid_response_for_a_real_recommendation(
+    client: AsyncClient,
 ) -> None:
-    stub_agent(app, payload)
-
-    response = await client.post("/v1/draft", json={"message": "doesn't matter, mocked"})  # act
+    response = await client.post(
+        "/v1/draft",
+        json={"message": "What license lets people remix my short story but not sell it?"},
+    )  # act
 
     assert response.status_code == 200
-    assert response.json() == payload
+    body = response.json()
+    draft_response = DraftResponse.model_validate(body)
+    assert draft_response.assistant_message != FALLBACK_ASSISTANT_MESSAGE
+    assert draft_response.disclaimers
 
 
-async def test_draft_explanation_turn_reports_draft_changed_false(
-    app: FastAPI, client: AsyncClient, stub_agent: Callable[[FastAPI, dict], None]
-) -> None:
-    stub_agent(app, EXPLANATION_RESPONSE)
+async def test_draft_multi_turn_conversation_stays_schema_valid(client: AsyncClient) -> None:
+    first = await client.post(
+        "/v1/draft",
+        json={"message": "What license lets people remix my short story but not sell it?"},
+    )
 
-    response = await client.post("/v1/draft", json={"message": "what does section 3 mean?"})  # act
+    assert first.status_code == 200
+    first_body = first.json()
+    assert first_body["assistantMessage"] != FALLBACK_ASSISTANT_MESSAGE
 
-    assert response.status_code == 200
-    assert response.json()["draftChanged"] is False
+    second = await client.post(
+        "/v1/draft",
+        json={
+            "message": "Can you explain the current draft to me?",
+            "draft": first_body["draft"],
+            "conversation": [
+                {
+                    "role": "user",
+                    "content": "What license lets people remix my short story but not sell it?",
+                },
+                {"role": "assistant", "content": first_body["assistantMessage"]},
+            ],
+        },
+    )  # act
+
+    assert second.status_code == 200
+    second_body = second.json()
+    DraftResponse.model_validate(second_body)
+    assert second_body["assistantMessage"] != FALLBACK_ASSISTANT_MESSAGE
 
 
 async def test_draft_returns_400_for_empty_message(
@@ -136,30 +123,3 @@ async def test_draft_returns_429_once_rate_limit_exceeded(
 
     assert response.status_code == 429
     assert response.json()["error"]["code"] == "RATE_LIMITED"
-
-
-async def test_draft_end_to_end_flow_recommend_explain_fork(
-    app: FastAPI, client: AsyncClient, stub_agent: Callable[[FastAPI, dict], None]
-) -> None:
-    stub_agent(app, CANONICAL_RESPONSE)
-    recommend = await client.post(
-        "/v1/draft", json={"message": "what license lets people remix but not sell?"}
-    )
-
-    assert recommend.status_code == 200
-    assert recommend.json()["draft"]["source"]["type"] == "canonical"
-
-    stub_agent(app, EXPLANATION_RESPONSE)
-    explain = await client.post("/v1/draft", json={"message": "what does section 3 mean?"})
-
-    assert explain.status_code == 200
-    assert explain.json()["draftChanged"] is False
-
-    stub_agent(app, FORKED_RESPONSE)
-    fork = await client.post(
-        "/v1/draft", json={"message": "allow small indie authors to sell"}
-    )  # act
-
-    assert fork.status_code == 200
-    assert fork.json()["draft"]["source"]["type"] == "forked"
-    assert fork.json()["draft"]["title"] != "Fixture Active License"
