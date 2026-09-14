@@ -37,14 +37,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eu
-          # Dry-run prints "The next release version is X.Y.Z" when a release would happen, and "There are no relevant changes, so no new version is released" otherwise. We capture stdout+stderr and grep for the decision line.
+          # Dry-run prints "... the next release version is X.Y.Z" when a release would happen
+          # (worded "The next release version is X.Y.Z" normally, but "There is no previous
+          # release, the next release version is X.Y.Z" — lowercase, mid-sentence — for the very
+          # first release), and "There are no relevant changes, so no new version is released"
+          # otherwise. We capture stdout+stderr and grep case-insensitively for the decision line.
           output="$(npm run --silent release -- --dry-run 2>&1)" || {
             echo "$output"
             echo "semantic-release --dry-run failed."
             exit 1
           }
           echo "$output"
-          if echo "$output" | grep -q "The next release version is"; then
+          if echo "$output" | grep -qi "the next release version is"; then
             echo "will_release=true" >> "$GITHUB_OUTPUT"
             echo "==> A release will be cut."
           else
