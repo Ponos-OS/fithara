@@ -23,14 +23,14 @@
         right: 1rem;
         z-index: 9999;
         font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #fff;
-        color: #111;
-        border: 1px solid #d1d5db;
+        background: #171717;
+        color: #f2f2f2;
+        border: 1px solid #404040;
         border-radius: 6px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.4);
         padding: 4px 8px;
       }
-      #fithara-version-switcher label { color: #6b7280; margin-right: 6px; }
+      #fithara-version-switcher label { color: #a3a3a3; margin-right: 6px; }
       #fithara-version-switcher select {
         border: none;
         background: transparent;
@@ -41,17 +41,8 @@
       }
       #fithara-version-switcher a {
         margin-left: 8px;
-        color: #2563eb;
+        color: #60a5fa;
         text-decoration: none;
-      }
-      @media (prefers-color-scheme: dark) {
-        #fithara-version-switcher {
-          background: #171717;
-          color: #f2f2f2;
-          border-color: #404040;
-        }
-        #fithara-version-switcher label { color: #a3a3a3; }
-        #fithara-version-switcher a { color: #60a5fa; }
       }
     `;
   }

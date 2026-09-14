@@ -30,7 +30,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Fithara", lifespan=lifespan)
+    app = FastAPI(
+        title="Fithara",
+        description="[Download openapi.json](./openapi.json) — the schema for this version.",
+        lifespan=lifespan,
+    )
 
     app.include_router(licenses_router)
     app.include_router(draft_router)

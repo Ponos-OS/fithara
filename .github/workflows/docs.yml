@@ -1,10 +1,10 @@
 name: Publish API docs
 
-# Triggered after the Release workflow succeeds on main. Reads the tag semantic-release
-# just created, regenerates docs/openapi.json via `make schema`, renders it into a static
-# Redoc site, and commits it back to main under docs/v<version>/ + docs/latest/. GitHub
-# Pages is configured to deploy from main /docs, so no separate gh-pages branch is needed.
-# A .nojekyll file at docs/.nojekyll disables Jekyll so our raw HTML/JS is served verbatim.
+# Triggered after the Release workflow succeeds on main.
+# 1. Reads the tag semantic-release just created.
+# 2. Regenerates docs/openapi.json via `make schema`.
+# 3. Renders it into a static Redoc site.
+# 4. Commits it back to main under docs/v<version>/ + docs/latest/.
 
 on:
   workflow_run:
@@ -14,8 +14,6 @@ on:
     branches:
       - main
   # Manual re-runs: useful when you need to rebuild the docs for the current latest tag
-  # without cutting a new release (e.g. template tweaks, or backfilling docs for an
-  # existing tag).
   workflow_dispatch:
 
 permissions:
@@ -82,16 +80,14 @@ jobs:
           rm -rf "$out"
           mkdir -p "$out"
 
-          # Redoc renders a single self-contained index.html from the OpenAPI schema —
-          # this plays the same role SpectaQL plays for GraphQL in smart-novel-beatrice.
-          npx --yes @redocly/cli@1 build-docs docs/openapi.json --output "$out/index.html"
+          # Redoc renders a single self-contained index.html from the OpenAPI schema. docs/redocly-theme.yaml hides Redoc's own blob-URL download button and forces a dark theme.
+          npx --yes @redocly/cli@1 build-docs docs/openapi.json --config docs/redocly-theme.yaml --output "$out/index.html"
 
           # Ship the raw schema alongside the HTML so it's always fetchable per-version.
           cp docs/openapi.json "$out/openapi.json"
 
-          # Inject the version-switcher script into the built index.html so users can jump
-          # between versions.
-          switcher_script="  <script>window.FITHARA_DOCS_VERSION=\"$VERSION_TAG\";</script>\n  <script src=\"../version-switcher.js\" defer></script>\n</head>"
+          # Inject the version-switcher script, plus a dark page background.
+          switcher_script="  <script>window.FITHARA_DOCS_VERSION=\"$VERSION_TAG\";</script>\n  <script src=\"../version-switcher.js\" defer></script>\n  <style>html,body{background:#0d0d0d}</style>\n</head>"
           awk -v repl="$switcher_script" '{ gsub("</head>", repl); print }' "$out/index.html" > "$out/index.html.tmp"
           mv "$out/index.html.tmp" "$out/index.html"
 
