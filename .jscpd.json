@@ -1,0 +1,8 @@
+{
+  "path": ["src", "tests"],
+  "format": ["python"],
+  "ignore": ["**/__pycache__/**"],
+  "reporters": ["console"],
+  "gitignore": true,
+  "threshold": 1.02
+}

@@ -77,7 +77,16 @@ jobs:
       - name: Run unit tests
         run: make test
 
-      - name: Check import architecture and lint
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Node deps
+        run: npm ci
+
+      - name: Check import architecture, duplication and lint
         run: make lint_check
 
       - name: Check docs/openapi.json is up to date

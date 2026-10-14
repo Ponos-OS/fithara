@@ -50,19 +50,21 @@ evals_baseline:
 evals_nightly:
 	uv run --group evals python local-setup/ollama/run_nightly_evals.py
 
-## Check lint/format/types/import-architecture without mutating files (CI)
+## Check linters
 lint_check:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run pyright
 	uv run lint-imports
+	npx --no-install jscpd
 
-## Apply lint/format fixes and check types + import architecture (local dev)
+## Apply linters
 lint:
 	uv run ruff format .
 	uv run ruff check --fix .
 	uv run pyright
 	uv run lint-imports
+	npx --no-install jscpd
 
 ## Remove caches, venv, and build artefacts
 clean:
