@@ -87,6 +87,7 @@ def test_draft_response_round_trips_with_null_draft() -> None:
         recommendations=["CC-BY-4.0"],
         disclaimers=["This is not legal advice."],
         is_ready_to_finalize=False,
+        conversation=[ConversationTurn(role="user", content="hi")],
     )
 
     dumped = response.model_dump(by_alias=True)  # act

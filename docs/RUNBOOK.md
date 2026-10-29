@@ -42,6 +42,15 @@ If OTel tracing is enabled (`OTEL__ENABLED=true`), the same failure also shows
 up as a `gen_ai.*` span (provider, model, error) via PydanticAI's built-in
 instrumentation, correlated to the request's trace id.
 
+A failed history summary logs `draft_agent_compaction_failed` with the same
+fields and the caller gets the same safe fallback reply. A `400` saying the
+draft and conversation are too long for the model's context window means the
+draft itself, even with the history summarized, does not fit what is left of
+the model's context window after the response is reserved. The window and the
+output limit come from the model capability catalog (`llmcapa`), never from the
+environment. A model missing from the catalog stops the service at startup;
+add its limits to `HARDCODED_LIMITS` in `src/utils/model_limits.py`.
+
 ## Interpreting `status_code`
 
 | `status_code` | Likely cause | Action |

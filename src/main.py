@@ -7,7 +7,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from src.modules.draft import router as draft_router
+from src.modules.draft import get_context_budget, router as draft_router
+from src.modules.health import router as health_router
 from src.modules.licenses import router as licenses_router
 from src.registry import get_registry
 from src.utils import (
@@ -27,6 +28,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_observability(settings, version=settings.app_version)
 
     get_registry()  # forces the registry load; a malformed license file aborts startup
+    get_context_budget()  # a context window too small for the prompt aborts startup
     yield
 
 
@@ -38,6 +40,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    app.include_router(health_router)
     app.include_router(licenses_router)
     app.include_router(draft_router)
     instrument_fastapi(app)

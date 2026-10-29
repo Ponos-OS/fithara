@@ -2,7 +2,7 @@
 The PydanticAI agent behind `POST /v1/draft`.
 
 Exposes the canonical registry to the LLM as tools and forces its output
-into the `DraftResponse` shape. PydanticAI retries once on its own (its
+into the `DraftReply` shape. PydanticAI retries once on its own (its
 default output-validation retry budget) when the LLM's structured output
 fails to validate; if the retry also fails, `run_draft_agent` catches the
 resulting `AgentRunError` and returns a safe, schema-valid fallback
@@ -20,18 +20,28 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic_ai import Agent, AgentRunError, ModelHTTPError, ModelRetry
-from pydantic_ai.models import Model, infer_model
-from pydantic_ai.providers import infer_provider_class
+from pydantic_ai.models import Model
+from pydantic_ai.settings import ModelSettings
 
+from src.modules.draft.compaction import (
+    SUMMARY_TOKENS,
+    clip,
+    compact_history,
+    load_compaction_prompt,
+    render_turn,
+)
+from src.modules.draft.context import ContextBudget, build_context_budget, estimate_tokens
+from src.modules.draft.model import build_model
 from src.modules.draft.rules import canonical_text_matches
-from src.modules.draft.types import ConversationTurn, DraftRequest, DraftResponse
+from src.modules.draft.types import ConversationTurn, DraftReply, DraftRequest, DraftResponse
 from src.registry import CanonicalLicense, active_licenses_by_order, get_registry
-from src.utils import get_settings
+from src.utils import api_error, get_model_limits, get_settings
 
 
 _logger = logging.getLogger(__name__)
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "v1.md"
 _FALLBACK_RESPONSE = DraftResponse(
+    conversation=[],
     assistant_message=(
         "Sorry, I wasn't able to produce a reliable answer for that. "
         "Please try rephrasing your request."
@@ -51,7 +61,7 @@ def _load_system_prompt() -> str:
     return _PROMPT_PATH.read_text(encoding="utf-8")
 
 
-def build_agent(model: str | Model) -> Agent[None, DraftResponse]:
+def build_agent(model: str | Model) -> Agent[None, DraftReply]:
     """
     Build a drafting agent for the given model.
 
@@ -61,7 +71,7 @@ def build_agent(model: str | Model) -> Agent[None, DraftResponse]:
     key needed.
     """
 
-    agent: Agent[None, DraftResponse] = Agent(model, output_type=DraftResponse)
+    agent: Agent[None, DraftReply] = Agent(model, output_type=DraftReply)
 
     @agent.instructions
     def _instructions() -> str:
@@ -92,30 +102,30 @@ def build_agent(model: str | Model) -> Agent[None, DraftResponse]:
 
 
 @lru_cache(maxsize=1)
-def get_agent() -> Agent[None, DraftResponse]:
-    """
-    The process-wide production agent, built from `Settings.llm`.
+def get_agent() -> Agent[None, DraftReply]:
+    """The process-wide production agent, built from `Settings.llm`."""
 
-    A model string alone (`Agent("openai:gpt-5.2")`) makes PydanticAI build its
-    own provider client from that provider's conventional env var (e.g.
-    `OPENAI_API_KEY`), ignoring `Settings.llm.api_key` entirely. Building the
-    provider explicitly with our own `api_key` is what actually wires the
-    configured key up.
-    """
+    return build_agent(build_model(get_settings().llm))
 
-    settings = get_settings().llm
-    provider_kwargs: dict[str, object] = {"api_key": settings.api_key}
-    if settings.base_url is not None:
-        provider_kwargs["base_url"] = settings.base_url
-    provider = infer_provider_class(settings.provider)(**provider_kwargs)  # pyright: ignore[reportCallIssue]
-    model = infer_model(
-        f"{settings.provider}:{settings.model}", provider_factory=lambda _: provider
+
+@lru_cache(maxsize=1)
+def get_context_budget() -> ContextBudget:
+    """What the configured model's context window leaves for a call. Raises when it leaves nothing."""
+
+    settings = get_settings()
+
+    return build_context_budget(
+        get_model_limits(),
+        settings.conversation,
+        instructions=_load_system_prompt(),
+        compaction_instructions=load_compaction_prompt(),
+        summary_tokens=SUMMARY_TOKENS,
+        registry=get_registry(),
     )
-    return build_agent(model)
 
 
 def _passes_canonical_integrity_check(
-    response: DraftResponse, registry: tuple[CanonicalLicense, ...]
+    response: DraftReply, registry: tuple[CanonicalLicense, ...]
 ) -> bool:
     """
     Rule 1's enforcement point: a draft claiming `source.type == "canonical"`
@@ -155,12 +165,13 @@ def _safe_error_fields(exc: AgentRunError) -> dict[str, object]:
     return fields
 
 
-def _turn_line(turn: ConversationTurn) -> str:
-    return f"{turn.role}: {turn.content}"
+def _build_prompt(request: DraftRequest, conversation: list[ConversationTurn] | None = None) -> str:
+    """
+    The draft is its own block after the history and is never compacted: only `conversation` is.
+    """
 
-
-def _build_prompt(request: DraftRequest) -> str:
-    lines = [_turn_line(turn) for turn in request.conversation]
+    turns = request.conversation if conversation is None else conversation
+    lines = [render_turn(turn) for turn in turns]
 
     if request.draft is not None:
         lines.append(
@@ -169,26 +180,74 @@ def _build_prompt(request: DraftRequest) -> str:
     if request.preferences is not None and request.preferences.category is not None:
         lines.append(f"Preferred category: {request.preferences.category}")
 
-    lines.append(_turn_line(ConversationTurn(role="user", content=request.message)))
+    lines.append(render_turn(ConversationTurn(role="user", content=request.message)))
 
     return "\n\n".join(lines)
+
+
+def needs_compaction(request: DraftRequest, budget: ContextBudget) -> bool:
+    """
+    True when the prompt, built from the whole history, would not leave room for the response, or
+    when the history sent back (this turn's two turns added) would be over the turn limit.
+    """
+
+    return (
+        estimate_tokens(_build_prompt(request)) > budget.prompt_tokens
+        or len(request.conversation) + 2 > budget.max_turns
+    )
 
 
 async def run_draft_agent(
     request: DraftRequest,
     *,
-    agent: Agent[None, DraftResponse] | None = None,
+    agent: Agent[None, DraftReply] | None = None,
     registry: tuple[CanonicalLicense, ...] | None = None,
+    compact: bool = False,
+    budget: ContextBudget | None = None,
+    compaction_agent: Agent[None, str] | None = None,
 ) -> DraftResponse:
-    """Run the drafting agent for one turn. Never raises — falls back to a safe response on any agent failure."""
+    """
+    Run the drafting agent for one turn. Falls back to a safe response on any agent failure, with
+    the incoming conversation handed back unchanged so the failed exchange is not kept. The only
+    thing it raises is a 400 when the draft alone leaves no room for the conversation, even compacted.
+
+    With `compact`, the history older than the newest turns is replaced by a summary turn; the draft
+    and the new message always travel verbatim. The returned `conversation` is what the client
+    sends next time.
+    """
 
     agent = agent or get_agent()
+    budget = budget or get_context_budget()
+    fallback = _FALLBACK_RESPONSE.model_copy(update={"conversation": request.conversation})
+    conversation = request.conversation
+
+    if compact:
+        try:
+            conversation = await compact_history(
+                conversation,
+                keep_recent_turns=budget.keep_recent_turns,
+                max_input_tokens=budget.compaction_input_tokens,
+                max_turn_chars=budget.max_turn_chars,
+                agent=compaction_agent,
+            )
+        except AgentRunError as exc:
+            _logger.warning("draft_agent_compaction_failed", extra=_safe_error_fields(exc))
+            return fallback
+
+    prompt = _build_prompt(request, conversation)
+    if estimate_tokens(prompt) > budget.prompt_tokens:
+        raise api_error(
+            "INVALID_REQUEST",
+            "the draft and the conversation are too long for the model's context window",
+        )
 
     try:
-        result = await agent.run(_build_prompt(request))
+        result = await agent.run(
+            prompt, model_settings=ModelSettings(max_tokens=budget.response_tokens)
+        )
     except AgentRunError as exc:
         _logger.warning("draft_agent_llm_call_failed", extra=_safe_error_fields(exc))
-        return _FALLBACK_RESPONSE
+        return fallback
 
     registry = registry if registry is not None else get_registry()
     if not _passes_canonical_integrity_check(result.output, registry):
@@ -197,6 +256,16 @@ async def run_draft_agent(
             "draft_agent_canonical_integrity_check_failed",
             extra={"canonical_id": canonical_id},
         )
-        return _FALLBACK_RESPONSE
+        return fallback
 
-    return result.output
+    return DraftResponse(
+        **result.output.model_dump(),
+        conversation=[
+            *conversation,
+            ConversationTurn(role="user", content=clip(request.message, budget.max_turn_chars)),
+            ConversationTurn(
+                role="assistant",
+                content=clip(result.output.assistant_message, budget.max_turn_chars),
+            ),
+        ],
+    )

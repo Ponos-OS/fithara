@@ -80,4 +80,7 @@ async def test_adversarial_message_alone_does_not_crash_or_bypass_validation(
     response = await client.post("/v1/draft", json={"message": adversarial_message})  # act
 
     assert response.status_code == 200
-    assert response.json() == compliant_response
+    body = response.json()
+    conversation = body.pop("conversation")
+    assert body == compliant_response
+    assert conversation[-2] == {"role": "user", "content": adversarial_message}

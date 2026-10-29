@@ -10,6 +10,8 @@ It does this by:
 
 Each reply the assistant gives is a standalone answer to that one message — it doesn't remember anything from previous conversations on its own. Whatever app is showing this to the author keeps track of the conversation and the current draft, and sends it back to Fithara each time.
 
+A long conversation can outgrow what the underlying model can read at once. When that happens, Fithara condenses the older part of the conversation into a short summary for that one reply and keeps the newest few messages as they are. The license draft is never condensed: it is always passed along word for word, together with the new message. Nothing is stored: every reply carries the conversation to send next time, with the older part already condensed, and the app keeps it. An app that wants to show every message keeps its own transcript. `GET /health` reports the model and the size of its window so an app can plan around it.
+
 ## What Fithara Does Not Do
 
 - It is not a legal advice service. Every draft comes with a reminder to have it reviewed by a real lawyer before it's used.

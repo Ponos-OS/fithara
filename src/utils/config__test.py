@@ -39,6 +39,7 @@ def test_settings_defaults_apply_when_absent(monkeypatch) -> None:
     assert settings.rate_limit.per_minute == 60
     assert settings.conversation.max_turns == 50
     assert settings.conversation.max_message_chars == 4_000
+    assert settings.conversation.keep_recent_turns == 4
     assert settings.service_name == "fithara"
     assert settings.logging.mode == LoggingMode.JSON
     assert settings.logging.level == LogLevel.INFO

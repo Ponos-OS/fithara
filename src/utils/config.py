@@ -94,7 +94,7 @@ class RateLimit(BaseModel):
 
 
 class Conversation(BaseModel):
-    """Bounds on client-supplied conversation input, enforced on `POST /v1/draft`."""
+    """Bounds on client-supplied conversation input, enforced on `POST /v1/draft`, and how an over-long one is compacted."""
 
     max_turns: int = Field(
         default=50, ge=1, description="Maximum entries allowed in `conversation`."
@@ -103,6 +103,11 @@ class Conversation(BaseModel):
         default=4_000,
         ge=1,
         description="Maximum characters allowed in `message` or any turn's `content`.",
+    )
+    keep_recent_turns: int = Field(
+        default=4,
+        ge=0,
+        description="Newest turns sent verbatim when older ones are compacted into a summary.",
     )
 
 

@@ -72,8 +72,8 @@ class DraftRequest(CamelModel):
     )
 
 
-class DraftResponse(CamelModel):
-    """The assistant's reply: what it said, the (possibly updated) draft, and its recommendations."""
+class DraftReply(CamelModel):
+    """What the LLM produces for one turn: what it said, the (possibly updated) draft, and its recommendations."""
 
     assistant_message: str = Field(examples=["Section 3 covers the attribution requirement..."])
     draft: Draft | None = Field(
@@ -94,4 +94,18 @@ class DraftResponse(CamelModel):
     )
     is_ready_to_finalize: bool = Field(
         description="The assistant's opinion on readiness. The client decides whether to act on it."
+    )
+
+
+class DraftResponse(DraftReply):
+    """The assistant's reply, plus the conversation to send on the next request."""
+
+    conversation: list[ConversationTurn] = Field(
+        description=(
+            "The conversation to send as `conversation` on the next request, exactly as returned. "
+            "It ends with this turn's user message and the assistant's reply. A long history is "
+            "condensed: its older turns are replaced by one leading `assistant` turn that starts "
+            "with 'Summary of the earlier conversation:'. The draft is never condensed. "
+            "A client that wants to show every message should keep its own transcript."
+        )
     )

@@ -20,6 +20,7 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-http>=1.28",
     "opentelemetry-instrumentation-fastapi>=0.49b0",
     "opentelemetry-instrumentation-httpx>=0.49b0",
+    "llmcapa>=0.5.59",
 ]
 
 [dependency-groups]
@@ -125,6 +126,12 @@ name = "src.modules.licenses internals are private"
 type = "protected"
 protected_modules = ["src.modules.licenses.**"]
 allowed_importers = ["src.modules.licenses", "src.modules.licenses.**"]
+
+[[tool.importlinter.contracts]]
+name = "src.modules.health internals are private"
+type = "protected"
+protected_modules = ["src.modules.health.**"]
+allowed_importers = ["src.modules.health", "src.modules.health.**"]
 
 [[tool.importlinter.contracts]]
 name = "src.modules.draft internals are private"

@@ -5,15 +5,29 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from pydantic_ai import ModelHTTPError, ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai import ModelHTTPError, ModelMessage, ModelResponse, TextPart, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from src.main import create_app
-from src.modules.draft import build_agent, get_agent, get_conversation_limits
+from src.modules.draft import (
+    ContextBudget,
+    build_agent,
+    build_compaction_agent,
+    get_agent,
+    get_compaction_agent,
+    get_context_budget,
+    get_conversation_limits,
+)
 from src.registry import get_registry, load_registry
 from src.utils import Conversation, RateLimiter, get_rate_limiter
 
 
+ROOMY_BUDGET = ContextBudget(
+    prompt_tokens=1_000_000,
+    response_tokens=1_000,
+    compaction_input_tokens=1_000_000,
+    keep_recent_turns=2,
+)
 REAL_SCHEMA = Path(__file__).parent.parent / "src" / "licenses" / "_schema.json"
 FIXTURE_ACTIVE_BODY = "# Fixture Active License\n\nFixture license body for FIXTURE-ACTIVE."
 
@@ -70,6 +84,7 @@ def build_test_app(fixture_registry_dir: Path) -> FastAPI:
     app.dependency_overrides[get_registry] = lambda: registry
     app.dependency_overrides[get_rate_limiter] = lambda: permissive_limiter
     app.dependency_overrides[get_conversation_limits] = lambda: permissive_limits
+    app.dependency_overrides[get_context_budget] = lambda: ROOMY_BUDGET
     return app
 
 
@@ -115,5 +130,25 @@ def failing_agent() -> Callable[[FastAPI], None]:
             raise ModelHTTPError(status_code=500, model_name="stub", body="upstream error")
 
         app.dependency_overrides[get_agent] = lambda: build_agent(FunctionModel(respond))
+
+    return _stub
+
+
+@pytest.fixture
+def stub_compaction() -> Callable[[FastAPI, str], list[str]]:
+    """Stub the summarizer; the returned list collects the text it was asked to summarize."""
+
+    def _stub(app: FastAPI, summary: str) -> list[str]:
+        received: list[str] = []
+
+        def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            received.append(str(messages[-1].parts[-1].content))  # pyright: ignore[reportAttributeAccessIssue]
+            return ModelResponse(parts=[TextPart(summary)])
+
+        app.dependency_overrides[get_compaction_agent] = lambda: build_compaction_agent(
+            FunctionModel(respond)
+        )
+
+        return received
 
     return _stub
