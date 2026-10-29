@@ -3,9 +3,30 @@
   "info": {
     "title": "Fithara",
     "description": "[Download openapi.json](./openapi.json) \u2014 the schema for this version.",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
   "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/licenses": {
       "get": {
         "tags": [
@@ -126,7 +147,7 @@
             }
           },
           "400": {
-            "description": "The request failed validation, e.g. an empty `message`.",
+            "description": "The request failed validation, e.g. an empty `message`, or the draft is too long for the model's context window.",
             "content": {
               "application/json": {
                 "schema": {
@@ -322,6 +343,14 @@
             "type": "boolean",
             "title": "Isreadytofinalize",
             "description": "The assistant's opinion on readiness. The client decides whether to act on it."
+          },
+          "conversation": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationTurn"
+            },
+            "type": "array",
+            "title": "Conversation",
+            "description": "The conversation to send as `conversation` on the next request, exactly as returned. It ends with this turn's user message and the assistant's reply. A long history is condensed: its older turns are replaced by one leading `assistant` turn that starts with 'Summary of the earlier conversation:'. The draft is never condensed. A client that wants to show every message should keep its own transcript."
           }
         },
         "type": "object",
@@ -331,10 +360,11 @@
           "draftChanged",
           "recommendations",
           "disclaimers",
-          "isReadyToFinalize"
+          "isReadyToFinalize",
+          "conversation"
         ],
         "title": "DraftResponse",
-        "description": "The assistant's reply: what it said, the (possibly updated) draft, and its recommendations."
+        "description": "The assistant's reply, plus the conversation to send on the next request."
       },
       "DraftSource": {
         "properties": {
@@ -436,6 +466,33 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "examples": [
+              "1.1.0"
+            ]
+          },
+          "llm": {
+            "$ref": "#/components/schemas/LlmLimits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "llm"
+        ],
+        "title": "Health",
+        "description": "Liveness plus what a caller needs to size its requests."
       },
       "LicenseDetail": {
         "properties": {
@@ -676,6 +733,55 @@
         ],
         "title": "LicenseSummary",
         "description": "Canonical license metadata, without the (large) body text."
+      },
+      "LlmLimits": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "examples": [
+              "gpt-5.2"
+            ]
+          },
+          "contextWindow": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contextwindow",
+            "description": "Tokens the model can take, prompt and response together, from the model capability catalog. Null when the catalog does not know it.",
+            "examples": [
+              400000
+            ]
+          },
+          "maxOutputTokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxoutputtokens",
+            "description": "The most tokens the model can answer with, from the model capability catalog. Null when the catalog does not know it.",
+            "examples": [
+              128000
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "contextWindow",
+          "maxOutputTokens"
+        ],
+        "title": "LlmLimits",
+        "description": "The model behind the drafting assistant and the window it works within. Never includes provider credentials or URLs."
       },
       "Preferences": {
         "properties": {
