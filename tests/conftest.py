@@ -76,6 +76,10 @@ def fixture_registry_dir(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def _unexpected_compaction(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+    raise AssertionError("compaction ran; use the stub_compaction fixture to opt in")
+
+
 def build_test_app(fixture_registry_dir: Path) -> FastAPI:
     app = create_app()
     registry = load_registry(fixture_registry_dir)
@@ -85,6 +89,9 @@ def build_test_app(fixture_registry_dir: Path) -> FastAPI:
     app.dependency_overrides[get_rate_limiter] = lambda: permissive_limiter
     app.dependency_overrides[get_conversation_limits] = lambda: permissive_limits
     app.dependency_overrides[get_context_budget] = lambda: ROOMY_BUDGET
+    app.dependency_overrides[get_compaction_agent] = lambda: build_compaction_agent(
+        FunctionModel(_unexpected_compaction)
+    )
     return app
 
 
