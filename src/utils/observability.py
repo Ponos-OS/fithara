@@ -45,6 +45,24 @@ _LOG_RECORD_STANDARD_FIELDS: frozenset[str] = frozenset(
 _configured: bool = False
 
 
+class HealthcheckAccessLogFilter(logging.Filter):
+    """Drop the access-log line of a successful `GET /health`; failed probes still log."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not isinstance(record.args, tuple) or len(record.args) < 5:
+            return True
+
+        _client, method, full_path, _http_version, status_code = record.args[:5]
+        is_successful_probe = (
+            method == "GET"
+            and str(full_path).split("?")[0] == "/health"
+            and isinstance(status_code, int)
+            and status_code < 400
+        )
+
+        return not is_successful_probe
+
+
 class JsonFormatter(logging.Formatter):
     """Emit one JSON object per log record on a single line."""
 
@@ -103,6 +121,8 @@ def _configure_logging(settings: Settings) -> None:
         uv_logger = logging.getLogger(name)
         uv_logger.handlers = []
         uv_logger.propagate = True
+
+    logging.getLogger("uvicorn.access").addFilter(HealthcheckAccessLogFilter())
 
 
 def _configure_log_export(settings: Settings, resource: Resource) -> None:
@@ -163,4 +183,4 @@ def instrument_fastapi(app: FastAPI) -> None:
     tracer provider.
     """
 
-    FastAPIInstrumentor.instrument_app(app)
+    FastAPIInstrumentor.instrument_app(app, excluded_urls=r"/health(\?.*)?$")
