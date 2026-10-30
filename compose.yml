@@ -1,0 +1,40 @@
+# Fithara with Grafana, Loki, Tempo and an OTLP collector (grafana/otel-lgtm)
+# Grafana: http://localhost:3000 (admin / admin).
+#
+#   LOG_SHIPPING=otlp   docker compose up --build                    Fithara pushes its logs over OTLP
+#   LOG_SHIPPING=stdout docker compose --profile stdout up --build   Alloy tails Fithara's stdout instead
+#
+# Needs a .env (see .env.example) for the LLM settings.
+
+services:
+  fithara:
+    build: .
+    env_file: .env
+    environment:
+      OTEL__ENABLED: "true"
+      OTEL__EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
+      OTEL__LOG_SHIPPING: ${LOG_SHIPPING:-otlp}
+      LOGGING__MODE: JSON
+    ports:
+      - "8000:8000"
+    depends_on:
+      - lgtm
+
+  lgtm:
+    image: grafana/otel-lgtm:0.39.0
+    ports:
+      - "3000:3000"
+
+  alloy:
+    image: grafana/alloy:v1.21.3
+    profiles: [stdout]
+    user: root
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+    volumes:
+      - ./local-setup/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - lgtm

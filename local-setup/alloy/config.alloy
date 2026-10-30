@@ -1,0 +1,43 @@
+discovery.docker "fithara" {
+  host = "unix:///var/run/docker.sock"
+
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.service=fithara"]
+  }
+}
+
+discovery.relabel "fithara" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "fithara" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.fithara.targets
+  relabel_rules = discovery.relabel.fithara.rules
+  forward_to    = [loki.process.fithara.receiver]
+}
+
+// Fithara logs JSON with the trace and span id of the request.
+loki.process "fithara" {
+  stage.json {
+    expressions = { trace_id = "trace_id", span_id = "span_id" }
+  }
+
+  stage.structured_metadata {
+    values = { trace_id = "", span_id = "" }
+  }
+
+  forward_to = [loki.write.loki.receiver]
+}
+
+loki.write "loki" {
+  endpoint {
+    url = "http://lgtm:3100/loki/api/v1/push"
+  }
+}

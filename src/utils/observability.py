@@ -1,11 +1,8 @@
 """
 OpenTelemetry tracing + structured logging setup.
 
-Mirrors the pattern in the sibling project `smart-novel-beatrice`: OTel
-traces via OTLP/HTTP, and plain structured JSON logs to stdout correlated
-to the active trace/span id (not pushed through the OTel Logs SDK — that's
-a deliberate, narrower scope than "full OTel", matching what beatrice
-actually ships).
+Traces and logs go to the collector via OTLP/HTTP; JSON logs also go to stdout,
+correlated to the active trace/span id.
 """
 
 from __future__ import annotations
@@ -18,9 +15,12 @@ from typing import Any
 
 from fastapi import FastAPI
 from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -105,12 +105,22 @@ def _configure_logging(settings: Settings) -> None:
         uv_logger.propagate = True
 
 
+def _configure_log_export(settings: Settings, resource: Resource) -> None:
+    provider = LoggerProvider(resource=resource)
+    exporter = OTLPLogExporter(endpoint=f"{settings.otel.exporter_otlp_endpoint}/v1/logs")
+    provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+    # The handler stamps each record with the active trace/span id, so Loki lines link to Tempo traces.
+    logging.getLogger().addHandler(LoggingHandler(logger_provider=provider))
+
+
 def _configure_tracing(settings: Settings, version: str) -> None:
     resource = Resource.create({"service.name": settings.service_name, "service.version": version})
     provider = TracerProvider(resource=resource)
     exporter = OTLPSpanExporter(endpoint=f"{settings.otel.exporter_otlp_endpoint}/v1/traces")
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
+    if settings.otel.log_shipping == "otlp":
+        _configure_log_export(settings, resource)
 
     # HTTPX must be instrumented before any AsyncClient is created — pydantic-ai
     # creates one internally the first time an Agent actually runs.

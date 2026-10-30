@@ -4,6 +4,7 @@ import tomllib
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,6 +41,9 @@ class Logging(BaseModel):
     level: LogLevel = Field(default=LogLevel.INFO)
 
 
+LogShipping = Literal["otlp", "stdout"]
+
+
 class Otel(BaseModel):
     """
     OpenTelemetry tracing. Off by default — enabling it needs a real OTLP
@@ -50,6 +54,10 @@ class Otel(BaseModel):
     """
 
     enabled: bool = Field(default=False, description="Turn on OTel trace export.")
+    log_shipping: LogShipping = Field(
+        default="otlp",
+        description="How logs reach the collector: `otlp` pushes them over OTLP (needs `enabled`), `stdout` leaves them to a node-level shipper that tails stdout.",
+    )
     exporter_otlp_endpoint: str = Field(
         default="http://localhost:4318",
         description="OTLP/HTTP collector base URL (spans go to '<this>/v1/traces').",

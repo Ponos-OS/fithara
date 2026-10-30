@@ -19,6 +19,14 @@ start_dev:
 start:
 	uv run --no-sync uvicorn src.main:app --port $${PORT:-8000}
 
+## Run the app with Grafana, Loki and Tempo; logs pushed over OTLP (see compose.yml)
+start_stack_otlp:
+	LOG_SHIPPING=otlp docker compose up --build
+
+## Run the app with Grafana, Loki and Tempo; logs tailed from stdout by Alloy (see compose.yml)
+start_stack_stdout:
+	LOG_SHIPPING=stdout docker compose --profile stdout up --build
+
 ## Run unit tests (src/**/*__test.py)
 test:
 	@echo "== unit tests: $$(date -u +%FT%TZ) =="
