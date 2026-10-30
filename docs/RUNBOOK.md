@@ -8,6 +8,10 @@ safe fallback response, always `200`:
 
 ```json
 {
+  "conversation": [
+    {"role": "user", "content": "<the message that was sent>"},
+    {"role": "assistant", "content": "Sorry, I wasn't able to produce a reliable answer for that. Please try rephrasing your request."}
+  ],
   "assistantMessage": "Sorry, I wasn't able to produce a reliable answer for that. Please try rephrasing your request.",
   "draft": null,
   "draftChanged": false,

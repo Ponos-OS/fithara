@@ -92,7 +92,13 @@ async def test_draft_falls_back_when_the_llm_call_fails(
     DraftResponse.model_validate(body)
     assert body["assistantMessage"] == FALLBACK_ASSISTANT_MESSAGE
     assert body["draft"] is None
-    assert body["conversation"] == []
+    assert body["conversation"] == [
+        {
+            "role": "user",
+            "content": "What license lets people remix my short story but not sell it?",
+        },
+        {"role": "assistant", "content": FALLBACK_ASSISTANT_MESSAGE},
+    ]
 
 
 async def test_draft_returns_400_for_empty_message(

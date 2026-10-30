@@ -402,7 +402,9 @@ async def test_run_draft_agent_clips_turns_that_would_be_rejected_on_the_next_re
     assert len(response.conversation[-1].content) == 100
 
 
-async def test_run_draft_agent_hands_the_incoming_conversation_back_on_a_fallback() -> None:
+async def test_run_draft_agent_appends_the_failed_exchange_to_the_conversation_on_a_fallback() -> (
+    None
+):
     def always_invalid(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         return ModelResponse(
             parts=[ToolCallPart(info.output_tools[0].name, {"assistantMessage": 1})]
@@ -414,4 +416,8 @@ async def test_run_draft_agent_hands_the_incoming_conversation_back_on_a_fallbac
     with agent.override(model=FunctionModel(always_invalid)):
         response = await run_draft_agent(request, agent=agent, budget=ROOMY)  # act
 
-    assert response.conversation == _history()
+    assert response.conversation == [
+        *_history(),
+        ConversationTurn(role="user", content="hi"),
+        ConversationTurn(role="assistant", content=response.assistant_message),
+    ]

@@ -208,8 +208,9 @@ async def run_draft_agent(
 ) -> DraftResponse:
     """
     Run the drafting agent for one turn. Falls back to a safe response on any agent failure, with
-    the incoming conversation handed back unchanged so the failed exchange is not kept. The only
-    thing it raises is a 400 when the draft alone leaves no room for the conversation, even compacted.
+    the failed exchange (the message and the apology) appended to the conversation so the client
+    still shows it. The only thing it raises is a 400 when the draft alone leaves no room for the
+    conversation, even compacted.
 
     With `compact`, the history older than the newest turns is replaced by a summary turn; the draft
     and the new message always travel verbatim. The returned `conversation` is what the client
@@ -218,8 +219,17 @@ async def run_draft_agent(
 
     agent = agent or get_agent()
     budget = budget or get_context_budget()
-    fallback = _FALLBACK_RESPONSE.model_copy(update={"conversation": request.conversation})
     conversation = request.conversation
+
+    fallback = _FALLBACK_RESPONSE.model_copy(
+        update={
+            "conversation": [
+                *request.conversation,
+                ConversationTurn(role="user", content=clip(request.message, budget.max_turn_chars)),
+                ConversationTurn(role="assistant", content=_FALLBACK_RESPONSE.assistant_message),
+            ]
+        }
+    )
 
     if compact:
         try:
