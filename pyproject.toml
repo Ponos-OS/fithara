@@ -2,6 +2,8 @@
 name = "fithara"
 version = "2.2.0"
 description = "License drafting assistant service"
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 authors = [
     { name = "Kasir Barati", email = "kasir.barati@gmail.com" }
