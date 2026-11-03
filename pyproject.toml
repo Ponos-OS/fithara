@@ -1,6 +1,6 @@
 [project]
 name = "fithara"
-version = "2.2.0"
+version = "2.3.0"
 description = "License drafting assistant service"
 license = "MIT"
 license-files = ["LICENSE"]
