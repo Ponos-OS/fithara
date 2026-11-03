@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -65,19 +65,33 @@ class Otel(BaseModel):
     traces_sampler: str = Field(default="parentbased_always_on")
 
 
+class LlmProvider(StrEnum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    OLLAMA = "ollama"
+    OPENAI_COMPATIBLE = "openai-compatible"
+
+
 class Llm(BaseModel):
     """LLM provider configuration for the PydanticAI drafting agent."""
 
-    provider: str = Field(
-        description="PydanticAI provider identifier, e.g. 'openai', 'anthropic', or 'ollama'."
+    provider: LlmProvider = Field(
+        description="LLM provider. 'openai-compatible' targets any self-hosted or third-party server that speaks the OpenAI API and requires `base_url`."
     )
     model: str = Field(description="Model name for the drafting agent, e.g. 'gpt-5.2'.")
     api_key: str = Field(description="Provider API key.")
     base_url: str | None = Field(
         default=None,
-        description="Override the provider's default API base URL, e.g. 'http://localhost:11434/v1' for a self-hosted Ollama server.",
+        description="Override the provider's default API base URL, e.g. 'http://localhost:11434/v1' for a self-hosted Ollama server. Required for 'openai-compatible'.",
     )
     timeout_ms: int = Field(default=30_000, ge=1_000)
+
+    @model_validator(mode="after")
+    def _require_base_url_for_openai_compatible(self) -> Llm:
+        if self.provider == LlmProvider.OPENAI_COMPATIBLE and self.base_url is None:
+            raise ValueError("base_url is required when provider is 'openai-compatible'")
+
+        return self
 
 
 class Registry(BaseModel):

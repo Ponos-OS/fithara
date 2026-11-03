@@ -10,7 +10,7 @@ from opentelemetry.sdk._logs import LoggingHandler
 from opentelemetry.sdk.resources import Resource
 
 from src.utils import observability
-from src.utils.config import Llm, LogShipping, Otel, Settings
+from src.utils.config import Llm, LlmProvider, LogShipping, Otel, Settings
 
 
 @pytest.fixture(autouse=True)
@@ -28,7 +28,7 @@ def test_log_export_attaches_an_otel_logging_handler_to_the_root_logger() -> Non
     settings = Settings(
         otel=Otel(enabled=True, exporter_otlp_endpoint="http://otel-collector:4318"),
         llm=Llm(
-            provider="ollama",
+            provider=LlmProvider.OLLAMA,
             base_url="http://ollama:11434/v1",
             api_key="ollama",
             model="qwen2.5:3b",
@@ -62,7 +62,7 @@ def test_tracing_pushes_logs_only_when_log_shipping_is_otlp(
             exporter_otlp_endpoint="http://otel-collector:4318",
         ),
         llm=Llm(
-            provider="ollama",
+            provider=LlmProvider.OLLAMA,
             base_url="http://ollama:11434/v1",
             api_key="ollama",
             model="qwen2.5:3b",
@@ -112,7 +112,7 @@ def test_setup_installs_the_healthcheck_filter_on_the_uvicorn_access_logger() ->
     settings = Settings(
         otel=Otel(enabled=False),
         llm=Llm(
-            provider="ollama",
+            provider=LlmProvider.OLLAMA,
             base_url="http://ollama:11434/v1",
             api_key="ollama",
             model="qwen2.5:3b",

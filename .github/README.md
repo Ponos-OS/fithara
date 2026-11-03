@@ -22,10 +22,10 @@ The API is then served on http://localhost:8000. Pin a release tag instead of `l
 
 | Variable                          | Default                 | Description                                                                                                                                               |
 | --------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LLM__PROVIDER`                   | required                | PydanticAI provider, e.g. `openai`, `anthropic`, `ollama`.                                                                                                |
+| `LLM__PROVIDER`                   | required                | One of `openai`, `anthropic`, `ollama`, `openai-compatible` (any server speaking the OpenAI API; requires `LLM__BASE_URL`).                              |
 | `LLM__MODEL`                      | required                | Make sure to pick a model as intelligent as `gpt-4.1-mini` (this model worked when I tested it in [smart-novel](https://github.com/Ponos-OS/smart-novel)) |
 | `LLM__API_KEY`                    | required                | Provider API key.                                                                                                                                         |
-| `LLM__BASE_URL`                   | provider default        | Override the provider API base URL, e.g. a self-hosted Ollama server.                                                                                     |
+| `LLM__BASE_URL`                   | provider default        | Override the provider API base URL, e.g. a self-hosted Ollama server. Required for `openai-compatible`.                                                  |
 | `LLM__TIMEOUT_MS`                 | `30000`                 | LLM request timeout in milliseconds (minimum `1000`).                                                                                                     |
 | `RATE_LIMIT__PER_MINUTE`          | `60`                    | Requests per minute per key/IP.                                                                                                                           |
 | `CONVERSATION__MAX_TURNS`         | `50`                    | Maximum entries allowed in `conversation`.                                                                                                                |

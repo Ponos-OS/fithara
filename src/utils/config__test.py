@@ -138,3 +138,30 @@ def test_settings_app_version_reads_pyproject_toml(monkeypatch) -> None:
     settings = _settings()  # act
 
     assert settings.app_version == expected_version
+
+
+def test_settings_raises_when_llm_provider_unsupported(monkeypatch) -> None:
+    _set_required_llm_env(monkeypatch)
+    monkeypatch.setenv("LLM__PROVIDER", "mistral")
+
+    with pytest.raises(ValidationError):
+        _settings()
+
+
+def test_settings_raises_when_openai_compatible_has_no_base_url(monkeypatch) -> None:
+    _set_required_llm_env(monkeypatch)
+    monkeypatch.setenv("LLM__PROVIDER", "openai-compatible")
+    monkeypatch.delenv("LLM__BASE_URL", raising=False)
+
+    with pytest.raises(ValidationError):
+        _settings()
+
+
+def test_settings_accepts_openai_compatible_with_base_url(monkeypatch) -> None:
+    _set_required_llm_env(monkeypatch)
+    monkeypatch.setenv("LLM__PROVIDER", "openai-compatible")
+    monkeypatch.setenv("LLM__BASE_URL", "http://localhost:8080/v1")
+
+    settings = _settings()  # act
+
+    assert settings.llm.provider == "openai-compatible"

@@ -14,7 +14,10 @@ _logger = logging.getLogger(__name__)
 # The catalog's provider ids; any other provider (e.g. a self-hosted Ollama) is searched across the whole catalog.
 PROVIDER_IN_LLMCAPA = {"openai": "openai", "anthropic": "anthropic"}
 # Models the catalog lacks, by lowercase id: (context window, maximum output tokens).
-HARDCODED_LIMITS: dict[str, tuple[int, int]] = {}
+HARDCODED_LIMITS: dict[str, tuple[int, int]] = {
+    # The smart-novel-llm-gateway serves one GGUF at the context length smart-novel's llm_gateway module sets; its output shares that window.
+    "unsloth/qwen3.6-35b-a3b-gguf:q4_k_m": (32_768, 32_768),
+}
 
 
 @dataclass(frozen=True)

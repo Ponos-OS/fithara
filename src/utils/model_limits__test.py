@@ -78,6 +78,14 @@ def test_a_model_missing_from_the_catalog_falls_back_to_the_hardcoded_table(
     assert "model_not_in_catalog" in caplog.text
 
 
+def test_the_llm_gateways_model_has_limits_although_the_catalog_lacks_it(monkeypatch) -> None:
+    _catalog(monkeypatch)
+
+    result = model_limits("unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M", "openai")
+
+    assert (result.context_window, result.max_output_tokens) == (32_768, 32_768)
+
+
 def test_an_unknown_model_has_no_limits(monkeypatch) -> None:
     _catalog(monkeypatch)
 

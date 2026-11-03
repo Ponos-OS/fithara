@@ -6,6 +6,7 @@ from src.utils.api_model import CamelModel
 from src.utils.config import (
     Conversation,
     Llm,
+    LlmProvider,
     LoggingMode,
     LogLevel,
     Settings,
@@ -26,6 +27,7 @@ __all__ = [
     "ErrorResponse",
     "JsonFormatter",
     "Llm",
+    "LlmProvider",
     "LogLevel",
     "LoggingMode",
     "ModelLimits",
