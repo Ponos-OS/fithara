@@ -7,7 +7,7 @@ def test_health_reports_the_model_and_its_limits_without_credentials(monkeypatch
     monkeypatch.setenv("LLM__MODEL", "llama3.2:3b")
     monkeypatch.setenv("LLM__API_KEY", "sk-super-secret-value")
     monkeypatch.setenv("LLM__BASE_URL", "http://ollama:11434/v1")
-    settings = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
+    settings = Settings(_env_file=None)
     limits = ModelLimits("llama3.2:3b", context_window=131_072, max_output_tokens=None)
 
     result = health(settings, limits)  # act

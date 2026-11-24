@@ -62,7 +62,7 @@ evals_nightly:
 lint_check:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run pyright
+	uv run ty check
 	uv run lint-imports
 	npx --no-install jscpd
 
@@ -70,13 +70,13 @@ lint_check:
 lint:
 	uv run ruff format .
 	uv run ruff check --fix .
-	uv run pyright
+	uv run ty check
 	uv run lint-imports
 	npx --no-install jscpd
 
 ## Remove caches, venv, and build artefacts
 clean:
-	rm -rf .venv .pytest_cache .ruff_cache .mypy_cache .pyright build dist *.egg-info
+	rm -rf .venv .pytest_cache .ruff_cache .mypy_cache build dist *.egg-info
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
 
 .PHONY: help init start_dev start test integration_test schema evals evals_baseline evals_nightly lint_check lint clean

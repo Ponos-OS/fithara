@@ -27,6 +27,6 @@ def build_model(settings: Llm) -> Model:
             provider=OpenAIProvider(api_key=settings.api_key, base_url=settings.base_url),
         )
 
-    provider = infer_provider_class(settings.provider)(**provider_kwargs)  # pyright: ignore[reportCallIssue]
+    provider = infer_provider_class(settings.provider)(**provider_kwargs)
 
     return infer_model(f"{settings.provider}:{settings.model}", provider_factory=lambda _: provider)

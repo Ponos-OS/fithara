@@ -23,7 +23,7 @@ def _summarizer(summary: str) -> tuple[FunctionModel, list[tuple[str, int | None
     calls: list[tuple[str, int | None]] = []
 
     def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        prompt = str(messages[-1].parts[-1].content)  # pyright: ignore[reportAttributeAccessIssue]
+        prompt = str(messages[-1].parts[-1].content)
         calls.append((prompt, (info.model_settings or {}).get("max_tokens")))
         return ModelResponse(parts=[TextPart(summary)])
 

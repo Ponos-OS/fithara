@@ -8,7 +8,7 @@ async def test_health_reports_status_version_and_model_limits(
     app: FastAPI, client: AsyncClient
 ) -> None:
     app.dependency_overrides[get_settings] = lambda: Settings(
-        _env_file=None,  # pyright: ignore[reportCallIssue]
+        _env_file=None,
         llm={"provider": "openai", "model": "gpt-5.2", "api_key": "sk-test"},
     )
     app.dependency_overrides[get_model_limits] = lambda: ModelLimits(

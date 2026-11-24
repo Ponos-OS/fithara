@@ -273,7 +273,7 @@ async def test_run_draft_agent_compacts_older_turns_and_caps_the_response() -> N
 
     def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         seen.append(
-            (str(messages[-1].parts[-1].content), (info.model_settings or {}).get("max_tokens"))  # pyright: ignore[reportAttributeAccessIssue]
+            (str(messages[-1].parts[-1].content), (info.model_settings or {}).get("max_tokens"))
         )
         return ModelResponse(
             parts=[ToolCallPart(info.output_tools[0].name, PURE_EXPLANATION_RESPONSE)]
@@ -311,7 +311,7 @@ async def test_run_draft_agent_sends_the_whole_history_when_not_compacting() -> 
     prompts: list[str] = []
 
     def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        prompts.append(str(messages[-1].parts[-1].content))  # pyright: ignore[reportAttributeAccessIssue]
+        prompts.append(str(messages[-1].parts[-1].content))
         return ModelResponse(
             parts=[ToolCallPart(info.output_tools[0].name, PURE_EXPLANATION_RESPONSE)]
         )

@@ -149,7 +149,7 @@ class Settings(BaseSettings):
         default="fithara", description="Reported to OTel and used as a general service identifier."
     )
 
-    llm: Llm = Field(default_factory=Llm)  # pyright: ignore[reportArgumentType]
+    llm: Llm = Field(default_factory=Llm)
     registry: Registry = Field(default_factory=Registry)
     rate_limit: RateLimit = Field(default_factory=RateLimit)
     conversation: Conversation = Field(default_factory=Conversation)

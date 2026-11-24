@@ -149,7 +149,7 @@ def stub_compaction() -> Callable[[FastAPI, str], list[str]]:
         received: list[str] = []
 
         def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-            received.append(str(messages[-1].parts[-1].content))  # pyright: ignore[reportAttributeAccessIssue]
+            received.append(str(messages[-1].parts[-1].content))
             return ModelResponse(parts=[TextPart(summary)])
 
         app.dependency_overrides[get_compaction_agent] = lambda: build_compaction_agent(

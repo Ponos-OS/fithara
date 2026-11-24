@@ -49,9 +49,9 @@ repos:
         always_run: true
   - repo: local
     hooks:
-      - id: pyright
-        name: "pyright type check"
-        entry: bash -c 'uv run pyright src'
+      - id: ty
+        name: "ty type check"
+        entry: bash -c 'uv run ty check'
         language: system
         types: [python]
         pass_filenames: false

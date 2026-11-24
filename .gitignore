@@ -32,7 +32,7 @@ coverage.xml
 
 # Type checkers
 .mypy_cache/
-.pyright/
+.ty/
 .ruff_cache/
 
 # IDEs

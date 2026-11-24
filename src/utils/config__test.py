@@ -17,7 +17,7 @@ def _settings() -> Settings:
     pydantic-settings' separate `.env`-file source.
     """
 
-    return Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
+    return Settings(_env_file=None)
 
 
 def _set_required_llm_env(monkeypatch) -> None:

@@ -32,10 +32,10 @@ dev = [
     "httpx>=0.27",
     "pydantic-evals>=1.0.5",
     "ruff>=0.8",
-    "pyright>=1.1.389",
     "pre-commit>=4.0",
     "flake8-aaa>=0.17.2",
     "import-linter>=2.15",
+    "ty>=0.0.107",
 ]
 # Only needed to run `make evals_nightly` (real Ollama via Testcontainers). Kept out of
 # `dev` so a plain `uv sync` for day-to-day work doesn't pull in docker/testcontainers.
@@ -94,13 +94,22 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 
-[tool.pyright]
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
 include = ["src", "tests"]
-exclude = ["**/__pycache__", ".venv", "dist", "build"]
-pythonVersion = "3.12"
-typeCheckingMode = "standard"
-reportMissingImports = "error"
-reportMissingTypeStubs = "none"
+
+# FIXME(ty): silenced until ty catches up; remove each once the linked cause is fixed.
+# - invalid-argument-type in tests: `Model(**{**defaults, **overrides})` fixtures are checked
+#   against every field type at once (https://github.com/astral-sh/ty/issues/4841).
+# - missing-union-attribute in tests: `messages[-1].parts[-1].content` on a part union.
+[[tool.ty.overrides]]
+include = ["tests/**", "src/**/*__test.py"]
+
+[tool.ty.overrides.rules]
+invalid-argument-type = "ignore"
+missing-union-attribute = "ignore"
 
 # Every package with a barrel `__init__.py` (src/utils, src/registry, src/modules/licenses,
 # src/modules/draft, ...) is "protected": nothing outside it may import a submodule directly
