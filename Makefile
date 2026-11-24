@@ -1,4 +1,6 @@
+.ONESHELL:
 .DEFAULT_GOAL := help
+.SHELLFLAGS := -ec
 
 ## Show this help
 help:
