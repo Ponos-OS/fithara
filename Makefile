@@ -2,9 +2,20 @@
 .DEFAULT_GOAL := help
 .SHELLFLAGS := -ec
 
-## Show this help
+## Show this help message
 help:
-	@awk 'BEGIN {FS = ":.*##|## "} /^[a-zA-Z_-]+:.*?## |^## /{if ($$0 ~ /^##/) {print "\n" $$2} else {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}}' $(MAKEFILE_LIST)
+	@echo "Makefile targets:"
+	@targets="$$(grep -E '^[a-zA-Z_-]+:' $(MAKEFILE_LIST) | cut -d: -f1)"; \
+	width="$$(printf '%s\n' "$$targets" | awk '{ if (length > max) max = length } END { print max }')"; \
+	awk -v width="$$width" ' \
+		/^## / { description = substr($$0, 4); next } \
+		/^[a-zA-Z_-]+:/ && description { \
+			target = $$1; \
+			sub(/:.*/, "", target); \
+			printf "  make \033[36m%-*s\033[0m - %s\n", width, target, description; \
+			description = ""; \
+		} \
+	' $(MAKEFILE_LIST)
 
 ## Set up the local dev environment (.venv, deps, .env)
 init:
