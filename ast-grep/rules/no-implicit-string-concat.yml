@@ -1,0 +1,27 @@
+id: no-implicit-string-concat
+language: python
+severity: error
+message: Implicit string concatenation, join the parts with +
+rule:
+  kind: concatenated_string
+  pattern: $S
+  inside:
+    any:
+      - kind: parenthesized_expression
+      - kind: argument_list
+      - kind: keyword_argument
+      - kind: assignment
+      - kind: list
+transform:
+  JOINED:
+    rewrite:
+      rewriters: [join-part]
+      source: $S
+      joinBy: " + "
+fix: $JOINED
+rewriters:
+  - id: join-part
+    rule:
+      kind: string
+      pattern: $P
+    fix: $P

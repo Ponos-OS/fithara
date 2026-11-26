@@ -5,11 +5,18 @@ Thanks for helping out. This document covers the project layout and the testing 
 ## How to Start on Local Machine
 
 - [`uv`](https://docs.astral.sh/uv/).
+- Node.js and npm, for the dev tooling (ast-grep, jscpd, lefthook).
 
 ```shell
 make init
 make start_dev
 ```
+
+`make init` also installs the git hooks (`lefthook.yml`):
+
+- `pre-commit`: `make lint`, plus `make schema` when `main.py` or a `routes.py`/`types.py` is staged. If either changes a file, the commit stops so you can review and stage it.
+- `pre-push`: `make lint`, unit tests and integration tests.
+- `commit-msg`: the message must follow [Conventional Commits](https://www.conventionalcommits.org/).
 
 No database, queue, or object store — the service is stateless (§0.4/§4.7 of `REQUIREMENTS.md`), so there's nothing to run in Docker for local dev. [Docker](https://www.docker.com/) is only needed to build the production image (`Dockerfile`, Step B8).
 
@@ -77,7 +84,12 @@ fithara/
 │   ├── dockerhub-release.yml          # On push to main: gate on semantic-release, run tests, publish the Docker image
 │   └── docs.yml                       # After a successful release: render docs/openapi.json into a versioned docs site
 ├── Dockerfile                         # Backend image (Part 5)
-├── package.json, package-lock.json    # Node deps for the release toolchain (semantic-release + plugins) only — the app itself has no Node dependency
+├── package.json, package-lock.json    # Node deps for the release toolchain and dev tooling only — the app itself has no Node dependency
+├── lefthook.yml                       # Git hooks
+├── sgconfig.yml                       # ast-grep config
+├── ast-grep/rules/                    # Custom lint rules
+├── .gitattributes                     # LF line endings
+├── .taplo.toml                        # TOML formatter config
 ├── .releaserc.json                    # semantic-release config: commit-analyzer rules, pyproject.toml version bump, Docker publish
 ├── Makefile                           # Single entry point — see §4.13; no ad-hoc `uv run ...` invocations
 ├── pyproject.toml                     # uv-managed dependencies + project metadata
@@ -174,3 +186,4 @@ Prompts live at `src/modules/<module>/prompts/v1.md` (or `v1.jinja2` if a module
 28. **Never log `str(exc)` or a `ModelHTTPError.body` for an LLM provider failure.** A provider's own HTTP error body can echo back request details verbatim — confirmed against a real OpenAI 401, whose error body repeats the (here fake) API key back in plain text. Extract only structured, provider-agnostic fields instead: `type(exc).__name__`, and for `ModelHTTPError` specifically, `.status_code`/`.model_name`. This is a real secret-leak vector, not a theoretical one, and no unit test catches it unless it deliberately puts a fake secret in a mocked error body and asserts the logged fields never contain it.
 29. `setup_observability()`/anything else that needs `get_settings()` at app-construction time belongs in `main.py`'s `lifespan` (startup), not in `create_app()`'s body directly — same reasoning as `get_registry()`'s existing placement there: `make schema` imports the module-level `app` object via a bare `from src.main import app`, with no env vars set, and that import must keep succeeding. Anything wired directly into `create_app()` that needs `Settings` breaks it immediately.
 30. `semantic-release --dry-run` (used to validate `.releaserc.json`/`package.json` before trusting a CI job to run it) still needs a `GITHUB_TOKEN` in the environment even though dry-run mode skips every actual write (tag, publish, commit) — without one, plugin verification fails before it gets far enough to print the "next release version" line the CI job's own decision logic greps for. `GITHUB_TOKEN="$(gh auth token)" npm run --silent release -- --dry-run` is a safe way to smoke-test the config locally against the real repo: read-only, no side effects, but it does hit the real GitHub API so it needs real (if minimally-scoped) auth.
+31. Join adjacent string literals with an explicit `+`; implicit concatenation fails `make lint_check` (custom ast-grep rules live in `ast-grep/rules/`).

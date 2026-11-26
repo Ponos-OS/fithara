@@ -49,7 +49,7 @@ def build_context_budget(
     if limits.context_window is None:
         raise ValueError(
             f"the model {limits.model!r} is not in the capability catalog; add its context window "
-            "and maximum output tokens to HARDCODED_LIMITS in src/utils/model_limits.py"
+            + "and maximum output tokens to HARDCODED_LIMITS in src/utils/model_limits.py"
         )
 
     largest_license_tokens = max(
@@ -59,7 +59,7 @@ def build_context_budget(
     if limits.max_output_tokens is not None and limits.max_output_tokens < response_tokens:
         raise ValueError(
             f"the model {limits.model!r} can answer with at most {limits.max_output_tokens} tokens, "
-            f"fewer than the {response_tokens} needed to return the longest canonical license"
+            + f"fewer than the {response_tokens} needed to return the longest canonical license"
         )
 
     prompt_tokens = (
@@ -71,7 +71,7 @@ def build_context_budget(
     if prompt_tokens <= 0:
         raise ValueError(
             f"the context window of {limits.model!r} ({limits.context_window} tokens) is too small "
-            "for the system prompt, the longest canonical license and its response"
+            + "for the system prompt, the longest canonical license and its response"
         )
 
     return ContextBudget(

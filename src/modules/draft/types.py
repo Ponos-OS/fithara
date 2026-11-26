@@ -16,7 +16,7 @@ class DraftSource(CamelModel):
         examples=["CC-BY-NC-4.0"],
         description=(
             "The canonical license this draft is based on. Set when type is "
-            "'canonical' or 'forked'; always null for 'custom'."
+            + "'canonical' or 'forked'; always null for 'custom'."
         ),
     )
 
@@ -103,9 +103,9 @@ class DraftResponse(DraftReply):
     conversation: list[ConversationTurn] = Field(
         description=(
             "The conversation to send as `conversation` on the next request, exactly as returned. "
-            "It ends with this turn's user message and the assistant's reply. A long history is "
-            "condensed: its older turns are replaced by one leading `assistant` turn that starts "
-            "with 'Summary of the earlier conversation:'. The draft is never condensed. "
-            "A client that wants to show every message should keep its own transcript."
+            + "It ends with this turn's user message and the assistant's reply. A long history is "
+            + "condensed: its older turns are replaced by one leading `assistant` turn that starts "
+            + "with 'Summary of the earlier conversation:'. The draft is never condensed. "
+            + "A client that wants to show every message should keep its own transcript."
         )
     )

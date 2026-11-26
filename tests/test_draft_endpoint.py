@@ -16,7 +16,7 @@ from src.utils import Conversation, RateLimiter, get_rate_limiter
 
 FALLBACK_ASSISTANT_MESSAGE = (
     "Sorry, I wasn't able to produce a reliable answer for that. "
-    "Please try rephrasing your request."
+    + "Please try rephrasing your request."
 )
 CANONICAL_RESPONSE = {
     "assistantMessage": "Fixture Active License fits your needs, here it is verbatim.",

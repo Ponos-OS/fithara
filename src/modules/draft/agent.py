@@ -44,7 +44,7 @@ _FALLBACK_RESPONSE = DraftResponse(
     conversation=[],
     assistant_message=(
         "Sorry, I wasn't able to produce a reliable answer for that. "
-        "Please try rephrasing your request."
+        + "Please try rephrasing your request."
     ),
     draft=None,
     draft_changed=False,

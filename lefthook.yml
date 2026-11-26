@@ -1,0 +1,29 @@
+# Install with `make init` (runs `npx lefthook install`).
+
+pre-commit:
+  # `make lint` applies fixes: stop the commit so they can be reviewed and staged.
+  fail_on_changes: always
+  jobs:
+    - name: lint
+      run: make lint
+    - name: openapi schema
+      glob:
+        - "src/main.py"
+        - "src/modules/*/routes.py"
+        - "src/modules/*/types.py"
+      run: make schema
+
+pre-push:
+  fail_on_changes: always
+  jobs:
+    - name: lint
+      run: make lint
+    - name: unit tests
+      run: make test
+    - name: integration tests
+      run: make integration_test
+
+commit-msg:
+  jobs:
+    - name: conventional commit message
+      run: uv run conventional-pre-commit {1}

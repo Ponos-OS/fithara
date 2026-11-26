@@ -25,7 +25,7 @@ class LicenseSummary(CamelModel):
     summary: str = Field(
         examples=[
             "Allows others to share and adapt the work for non-commercial purposes, "
-            "provided they give appropriate credit."
+            + "provided they give appropriate credit."
         ]
     )
     permissions: list[str] = Field(examples=[["share", "adapt"]])
@@ -90,8 +90,8 @@ def find_license_or_error(
     response_model=LicenseListResponse,
     description=(
         "Returns only currently-offered licenses, ordered for display. A retired "
-        "license is omitted here but still resolves via `GET /v1/licenses/{id}` "
-        "(`410`, not `404`)."
+        + "license is omitted here but still resolves via `GET /v1/licenses/{id}` "
+        + "(`410`, not `404`)."
     ),
 )
 def list_licenses(
@@ -107,8 +107,8 @@ def list_licenses(
     response_model=LicenseDetail,
     description=(
         "Returns one license's full metadata and verbatim body. `404` means this id was "
-        "never registered; `410` means it was registered but is retired — see that "
-        "response's own description for what retired means for existing drafts."
+        + "never registered; `410` means it was registered but is retired — see that "
+        + "response's own description for what retired means for existing drafts."
     ),
     responses={
         404: {
@@ -119,8 +119,8 @@ def list_licenses(
             "model": ErrorResponse,
             "description": (
                 "The license id is registered but retired: it no longer appears in "
-                "`GET /v1/licenses` and cannot be selected for new drafts, but existing drafts "
-                "referencing it still resolve via `POST /v1/draft`."
+                + "`GET /v1/licenses` and cannot be selected for new drafts, but existing drafts "
+                + "referencing it still resolve via `POST /v1/draft`."
             ),
             "content": {
                 "application/json": {

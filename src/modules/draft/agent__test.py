@@ -93,7 +93,7 @@ CANONICAL_MATCH_RESPONSE = {
 FORK_RESPONSE = {
     "assistantMessage": (
         "I've adjusted the license so small publishers can sell it; this is now a "
-        "custom fork, not CC BY-NC 4.0 itself."
+        + "custom fork, not CC BY-NC 4.0 itself."
     ),
     "draft": {
         "title": "Custom license (derived from CC BY-NC 4.0)",
@@ -125,7 +125,7 @@ PURE_EXPLANATION_RESPONSE = {
 REFUSAL_RESPONSE = {
     "assistantMessage": (
         "I can't relabel a modified license as CC BY 4.0 — that would misrepresent it. "
-        "I can create a custom fork instead if you'd like."
+        + "I can create a custom fork instead if you'd like."
     ),
     "draft": None,
     "draftChanged": False,
@@ -225,9 +225,9 @@ def test_build_prompt_without_history_lists_every_turn_then_draft_then_message()
 
     assert result == (
         "user: turn 0\n\nassistant: turn 1\n\n"
-        f"Current draft (source type: custom):\n{DRAFT.text}\n\n"
-        "Preferred category: creative_commons\n\n"
-        "user: what does section 3 mean?"
+        + f"Current draft (source type: custom):\n{DRAFT.text}\n\n"
+        + "Preferred category: creative_commons\n\n"
+        + "user: what does section 3 mean?"
     )
 
 
@@ -245,9 +245,9 @@ def test_build_prompt_with_history_replaces_older_turns_but_keeps_the_draft_verb
 
     assert result == (
         f"assistant: {SUMMARY_PREFIX}\nThe author wants no copying.\n\n"
-        "user: turn 4\n\nassistant: turn 5\n\n"
-        f"Current draft (source type: custom):\n{DRAFT.text}\n\n"
-        "user: forbid resale"
+        + "user: turn 4\n\nassistant: turn 5\n\n"
+        + f"Current draft (source type: custom):\n{DRAFT.text}\n\n"
+        + "user: forbid resale"
     )
     assert "turn 0" not in result
 

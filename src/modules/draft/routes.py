@@ -61,7 +61,7 @@ def enforce_conversation_limits(
             "model": ErrorResponse,
             "description": (
                 "The request failed validation, e.g. an empty `message`, or the draft is too long "
-                "for the model's context window."
+                + "for the model's context window."
             ),
         },
         429: {

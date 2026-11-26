@@ -1,6 +1,16 @@
 .ONESHELL:
 .DEFAULT_GOAL := help
 .SHELLFLAGS := -ec
+.PHONY: help init start_dev start test integration_test schema evals evals_baseline evals_nightly format format_check lint_check lint clean
+
+# Tracked and new text files, NUL separated.
+TEXT_FILES = git grep --untracked -Ilz -e ''
+YAML_FILES = $(TEXT_FILES) -- '*.yml' '*.yaml'
+TOML_FILES = $(TEXT_FILES) -- '*.toml'
+# The published docs sites are generated, so the fixers leave them as they are.
+FIXABLE_FILES = $(TEXT_FILES) -- ':!docs/latest' ':!docs/v[0-9]*'
+# The fixers matter for everything else, such as Markdown, YAML, JSON, the Makefile and the Dockerfile.
+WHITESPACE_FIXERS = end-of-file-fixer trailing-whitespace-fixer
 
 ## Show this help message
 help:
@@ -17,12 +27,13 @@ help:
 		} \
 	' $(MAKEFILE_LIST)
 
-## Set up the local dev environment (.venv, deps, .env)
+## Set up the local dev environment
 init:
 	@command -v uv >/dev/null 2>&1 || { echo "uv is required: https://docs.astral.sh/uv/"; exit 1; }
 	uv sync
+	npm ci
 	@[ -f .env ] || { [ -f .env.example ] && cp .env.example .env; }
-	uv run pre-commit install || true
+	npx --no-install lefthook install
 
 ## Run the FastAPI app with auto-reload
 start_dev:
@@ -71,18 +82,44 @@ evals_baseline:
 evals_nightly:
 	uv run --group evals python local-setup/ollama/run_nightly_evals.py
 
-## Check linters
-lint_check:
-	uv run ruff check .
+## Format the code
+format:
+	$(YAML_FILES) | xargs -0 uv run check-yaml
+	$(TOML_FILES) | xargs -0 uv run check-toml
+	# A fixer exits 1 after changing a file, so only a second failure is an error.
+	for fixer in $(WHITESPACE_FIXERS); do
+		$(FIXABLE_FILES) | xargs -0 uv run $$fixer || $(FIXABLE_FILES) | xargs -0 uv run $$fixer
+	done
+	uv run taplo format
+	uv run ruff check --fix .
+	npx --no-install ast-grep scan -U src tests
+	uv run ruff format .
+
+## Check formatting
+format_check:
+	$(YAML_FILES) | xargs -0 uv run check-yaml
+	$(TOML_FILES) | xargs -0 uv run check-toml
+	# The fixers have no check mode, so they run on a throwaway copy.
+	copy="$$(mktemp -d)"
+	$(FIXABLE_FILES) | tar --null -T - -cf - | tar -xf - -C "$$copy"
+	for fixer in $(WHITESPACE_FIXERS); do
+		$(FIXABLE_FILES) | (cd "$$copy" && xargs -0 uv run --project "$(CURDIR)" $$fixer)
+	done
+	uv run taplo format --check
 	uv run ruff format --check .
+	npx --no-install ast-grep scan src tests
+
+## Check linters
+lint_check: format_check
+	uv run ruff check .
+	uv run flake8
 	uv run ty check
 	uv run lint-imports
 	npx --no-install jscpd
 
 ## Apply linters
-lint:
-	uv run ruff format .
-	uv run ruff check --fix .
+lint: format
+	uv run flake8
 	uv run ty check
 	uv run lint-imports
 	npx --no-install jscpd
@@ -91,5 +128,3 @@ lint:
 clean:
 	rm -rf .venv .pytest_cache .ruff_cache .mypy_cache build dist *.egg-info
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
-
-.PHONY: help init start_dev start test integration_test schema evals evals_baseline evals_nightly lint_check lint clean

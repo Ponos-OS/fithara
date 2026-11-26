@@ -14,7 +14,7 @@
    - A `### Tests` claim that an _existing_ test "should still pass unmodified" is a guess, not a fact — run it before believing it. When it doesn't hold, update that test's fixtures/stubs to the new contract rather than treating the claim as the AC.
 7. If the step changes a Pydantic field's `description=...`, a route's `responses=`, or anything else that shapes the OpenAPI schema, run `make schema` before committing — `docs/openapi.json` is generated, not hand-edited, and won't reflect the new wording otherwise.
 8. Commit the step on its own, with a message naming the `REQUIREMENTS.md` step number.
-   - A pre-commit hook (if configured) runs the full unit suite (`make test`) and blocks the commit on any failure — so if this step removes/renames something a later step's file still references (e.g. a settings field), fold the minimal fix to that other file into this commit rather than leaving it red until the next step.
+   - The Claude Code hook in `.claude/settings.json` runs the full unit suite (`make test`) and blocks the commit on any failure — so if this step removes/renames something a later step's file still references (e.g. a settings field), fold the minimal fix to that other file into this commit rather than leaving it red until the next step.
 9. IMPORTANT: follow the instructions in `SELF_IMPROVE.md` to improve yourself.
 
 You MUST complete step 9 (self-improvement) before you stop.
