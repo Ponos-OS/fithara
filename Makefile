@@ -34,6 +34,8 @@ init:
 	npm ci
 	@[ -f .env ] || { [ -f .env.example ] && cp .env.example .env; }
 	npx --no-install lefthook install
+	# Git opens the SSH connection before the pre-push hook runs, so a slow hook can get it dropped as idle. An existing core.sshCommand is kept.
+	git config core.sshCommand > /dev/null || git config core.sshCommand "ssh -o ServerAliveInterval=30"
 
 ## Run the FastAPI app with auto-reload
 start_dev:
@@ -92,7 +94,8 @@ format:
 	done
 	uv run taplo format
 	uv run ruff check --fix .
-	npx --no-install ast-grep scan -U src tests
+	# Colored output queries the terminal's background; inside a git hook the reply leaks into the shell.
+	npx --no-install ast-grep scan --color never -U src tests
 	uv run ruff format .
 
 ## Check formatting
